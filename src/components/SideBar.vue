@@ -13,6 +13,9 @@
         <router-link to="/revenue" class="nav-link" active-class="active">
           Revenue
         </router-link>
+        <router-link to="/tax" class="nav-link" active-class="active">
+          Tax
+        </router-link>
       </nav>
     </div>
   </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
@@ -10,6 +10,7 @@ Chart.register(...registerables)
 const categoryChart = ref<HTMLCanvasElement | null>(null)
 const monthlyChart = ref<HTMLCanvasElement | null>(null)
 const revenueChart = ref<HTMLCanvasElement | null>(null)
+const profitChart = ref<HTMLCanvasElement | null>(null)
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
 const showForecastModal = ref(false)
@@ -17,6 +18,7 @@ const localhost = 'http://localhost:5000/'
 
 const forecastResponse = ref<ForecastReport | null>(null)
 const revenueData = ref<RevenueItem[]>([])
+const expensesData = ref<ExpenseItem[]>([])
 
 interface CategoryDataItem {
   category: string
@@ -40,12 +42,94 @@ interface RevenueItem {
   dateTime: string
   // ...other fields
 }
+interface ExpenseItem {
+  amount: number
+  dateTime: string
+}
+
+const totalRevenue = computed(() =>
+  revenueData.value.reduce((sum, r) => sum + Number(r.amount), 0),
+)
+const totalExpenses = computed(() =>
+  expensesData.value.reduce((sum, e) => sum + Number(e.amount), 0),
+)
+const netProfit = computed(() => totalRevenue.value - totalExpenses.value)
+
+const fetchExpenseData = async () => {
+  try {
+    const res = await axios.get(localhost + 'api/expenses')
+    expensesData.value = res.data
+    renderProfitChart()
+  } catch (err) {
+    console.error('Failed to fetch expense data:', err)
+  }
+}
+
+const renderProfitChart = () => {
+  if (
+    !profitChart.value ||
+    revenueData.value.length === 0 ||
+    expensesData.value.length === 0
+  )
+    return
+
+  const revenueByMonth: Record<string, number> = {}
+  revenueData.value.forEach((item) => {
+    if (!item.dateTime) return
+    const m = item.dateTime.slice(0, 7)
+    revenueByMonth[m] = (revenueByMonth[m] || 0) + Number(item.amount)
+  })
+  const expenseByMonth: Record<string, number> = {}
+  expensesData.value.forEach((item) => {
+    if (!item.dateTime) return
+    const m = item.dateTime.slice(0, 7)
+    expenseByMonth[m] = (expenseByMonth[m] || 0) + Number(item.amount)
+  })
+
+  const months = Array.from(
+    new Set([...Object.keys(revenueByMonth), ...Object.keys(expenseByMonth)]),
+  ).sort()
+  const profitValues = months.map(
+    (m) => (revenueByMonth[m] || 0) - (expenseByMonth[m] || 0),
+  )
+
+  new Chart(profitChart.value, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Net Profit (RM)',
+          data: profitValues,
+          borderColor: '#ff6384',
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Net Profit Trend' },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Amount (RM)' },
+        },
+        x: {
+          title: { display: true, text: 'Month' },
+        },
+      },
+    },
+  })
+}
 
 const fetchRevenueData = async () => {
   try {
     const res = await axios.get(localhost + '/api/revenues')
     revenueData.value = res.data
     renderRevenueChart()
+    renderProfitChart()
   } catch (err) {
     console.error('Failed to fetch revenue data:', err)
   }
@@ -235,6 +319,7 @@ const exportForecastPDF = () => {
 onMounted(() => {
   fetchChartData()
   fetchRevenueData()
+  fetchExpenseData()
 })
 </script>
 
@@ -246,9 +331,27 @@ onMounted(() => {
         <i class="fas fa-file-alt"></i> Generate Financial Report
       </button>
     </div>
+    <div class="summary-row">
+      <div class="summary-card">
+        <h4>Total Revenue</h4>
+        <p>{{ totalRevenue.toFixed(2) }}</p>
+      </div>
+      <div class="summary-card">
+        <h4>Total Expenses</h4>
+        <p>{{ totalExpenses.toFixed(2) }}</p>
+      </div>
+      <div class="summary-card">
+        <h4>Net Profit</h4>
+        <p>{{ netProfit.toFixed(2) }}</p>
+      </div>
+    </div>
     <div class="dashboard-chart mb-3">
       <h3>Revenue Over Time</h3>
       <canvas ref="revenueChart" height="90"></canvas>
+    </div>
+    <div class="dashboard-chart mb-3">
+      <h3>Net Profit Trend</h3>
+      <canvas ref="profitChart" height="90"></canvas>
     </div>
     <div class="chart-container">
       <div class="chart-wrapper">
@@ -317,6 +420,26 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+}
+
+.summary-row {
+  display: flex;
+  gap: 20px;
+  margin: 1em 0;
+}
+
+.summary-card {
+  flex: 1;
+  background: #fff;
+  padding: 1em;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.summary-card h4 {
+  margin-bottom: 0.5em;
+  font-weight: 600;
 }
 
 .chart-wrapper {

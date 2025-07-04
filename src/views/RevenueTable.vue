@@ -51,6 +51,27 @@ function getCurrentDateTimeString() {
 
 const newRevenue = ref({ ...defaultRevenue })
 
+const downloadTemplate = () => {
+  window.open(localhost + 'api/template/revenue', '_blank')
+}
+
+const handleBatchUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    await axios.post(localhost + 'api/batchUploadRevenue', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    getRevenues()
+    successMessage.value = 'Batch upload successful!'
+  } catch (err) {
+    errorMessage.value = 'Batch upload failed'
+  }
+}
+
 const getRevenues = async () => {
   try {
     const response = await axios.get(localhost + 'api/revenues')
@@ -214,7 +235,12 @@ onMounted(async () => {
 <template>
   <div>
     <h2>Revenue Table</h2>
-    <button @click="showAdd = !showAdd">{{ showAdd ? 'Cancel' : 'Add Revenue' }}</button>
+    <div class="button-group">
+      <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
+      <input type="file" id="batchRevenue" hidden @change="handleBatchUpload" />
+      <button @click="document.getElementById('batchRevenue')?.click()" class="new-expense-btn">Batch Upload</button>
+      <button @click="showAdd = !showAdd" class="new-expense-btn">{{ showAdd ? 'Cancel' : 'Add Revenue' }}</button>
+    </div>
     <table>
       <thead>
         <tr>
@@ -471,6 +497,11 @@ select:focus {
   color: #e74c3c;
   margin-top: 15px;
   text-align: center;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
 }
 
 @media (max-width: 480px) {

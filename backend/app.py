@@ -4,6 +4,7 @@ from google import genai
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+from prophet import Prophet
 import mysql.connector
 import calendar 
 import google.generativeai as genai

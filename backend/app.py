@@ -506,6 +506,127 @@ def extract_json(text):
         return json.loads(match.group(1))
     raise ValueError('No JSON found in AI response')
 
+
+@app.route('/api/template/<string:doc_type>', methods=['GET'])
+def download_template(doc_type):
+    """Return CSV templates for batch uploads."""
+    if doc_type == 'expenses':
+        content = "date_time,type,category,total\n"
+    elif doc_type == 'revenue':
+        content = "title,category,amount,date_time\n"
+    else:
+        return jsonify({'error': 'Invalid template type'}), 400
+    response = make_response(content)
+    response.headers['Content-Disposition'] = f'attachment; filename={doc_type}_template.csv'
+    response.mimetype = 'text/csv'
+    return response
+
+
+def _read_uploaded_table(file_storage):
+    """Load uploaded CSV or Excel into a DataFrame."""
+    filename = file_storage.filename.lower()
+    if filename.endswith('.xlsx') or filename.endswith('.xls'):
+        return pd.read_excel(file_storage)
+    return pd.read_csv(file_storage)
+
+
+@app.route('/api/batchUploadExpenses', methods=['POST'])
+def batch_upload_expenses():
+    """Batch insert expenses from uploaded file."""
+    file = request.files.get('file')
+    if not file:
+        return jsonify({'error': 'No file provided'}), 400
+    try:
+        df = _read_uploaded_table(file)
+    except Exception as e:
+        return jsonify({'error': f'Failed to read file: {e}'}), 400
+
+    required = ['date_time', 'type', 'category', 'total']
+    for col in required:
+        if col not in df.columns:
+            return jsonify({'error': f'Missing required column {col}'}), 400
+
+    records = []
+    for _, row in df.iterrows():
+        records.append(
+            (
+                row['date_time'],
+                row['type'],
+                int(row.get('user_id', 1)),
+                row['category'],
+                float(row['total']),
+            )
+        )
+
+    try:
+        con = get_db_connection()
+        cursor = con.cursor()
+        cursor.executemany(
+            """
+            INSERT INTO expenses (date_time, type, user_id, category, total)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            records,
+        )
+        con.commit()
+        return jsonify({'message': f'{len(records)} expenses uploaded'}), 201
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+    finally:
+        if 'con' in locals() and con.is_connected():
+            cursor.close()
+            con.close()
+
+
+@app.route('/api/batchUploadRevenue', methods=['POST'])
+def batch_upload_revenue():
+    """Batch insert revenues from uploaded file."""
+    file = request.files.get('file')
+    if not file:
+        return jsonify({'error': 'No file provided'}), 400
+    try:
+        df = _read_uploaded_table(file)
+    except Exception as e:
+        return jsonify({'error': f'Failed to read file: {e}'}), 400
+
+    required = ['title', 'category', 'amount', 'date_time']
+    for col in required:
+        if col not in df.columns:
+            return jsonify({'error': f'Missing required column {col}'}), 400
+
+    records = []
+    for _, row in df.iterrows():
+        records.append(
+            (
+                row['title'],
+                row.get('description', ''),
+                row['category'],
+                float(row['amount']),
+                row.get('reference', ''),
+                row.get('file', ''),
+                row['date_time'],
+            )
+        )
+
+    try:
+        con = get_db_connection()
+        cursor = con.cursor()
+        cursor.executemany(
+            """
+            INSERT INTO revenues (title, description, category, amount, reference, file, date_time)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            records,
+        )
+        con.commit()
+        return jsonify({'message': f'{len(records)} revenues uploaded'}), 201
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+    finally:
+        if 'con' in locals() and con.is_connected():
+            cursor.close()
+            con.close()
+
 @app.route('/api/revenues', methods=['GET'])
 def get_revenues():
     try:

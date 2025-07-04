@@ -81,6 +81,27 @@ const resetForm = () => {
   errorMessage.value = ''
 }
 
+const downloadTemplate = () => {
+  window.open(localhost + 'api/template/expenses', '_blank')
+}
+
+const handleBatchUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    await axios.post(localhost + 'api/batchUploadExpenses', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    getExpenses()
+    successMessage.value = 'Batch upload successful!'
+  } catch (err) {
+    errorMessage.value = 'Batch upload failed'
+  }
+}
+
 const triggerFileInput = () => {
   const input = document.getElementById('fileInput')
   if (input) {
@@ -260,7 +281,12 @@ onMounted(async () => {
     <main class="main-content">
       <div class="header-row">
         <h1 class="page-title">Expense Management</h1>
-        <button @click="showModal = true" class="new-expense-btn">+ New Expense</button>
+        <div class="button-group">
+          <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
+          <input type="file" id="batchFile" hidden @change="handleBatchUpload" />
+          <button @click="document.getElementById('batchFile')?.click()" class="new-expense-btn">Batch Upload</button>
+          <button @click="showModal = true" class="new-expense-btn">+ New Expense</button>
+        </div>
       </div>
       <div v-if="expenses.length" class="expenses-container">
         <div class="expense-table">
@@ -615,6 +641,11 @@ select:focus {
   color: #e74c3c;
   margin-top: 15px;
   text-align: center;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
 }
 
 @media (max-width: 480px) {

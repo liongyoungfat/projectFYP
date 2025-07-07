@@ -97,6 +97,13 @@ const triggerFileInput = () => {
   }
 }
 
+const triggerBatchUpload = () => {
+  const input = document.getElementById('batchRevenue') as HTMLInputElement
+  if (input) {
+    input.click()
+  }
+}
+
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -238,8 +245,10 @@ onMounted(async () => {
     <div class="button-group">
       <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
       <input type="file" id="batchRevenue" hidden @change="handleBatchUpload" />
-      <button @click="document.getElementById('batchRevenue')?.click()" class="new-expense-btn">Batch Upload</button>
-      <button @click="showAdd = !showAdd" class="new-expense-btn">{{ showAdd ? 'Cancel' : 'Add Revenue' }}</button>
+      <button @click="triggerBatchUpload" class="new-expense-btn">Batch Upload</button>
+      <button @click="showAdd = !showAdd" class="new-expense-btn">
+        {{ showAdd ? 'Cancel' : 'Add Revenue' }}
+      </button>
     </div>
     <table>
       <thead>

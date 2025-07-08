@@ -5,7 +5,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from prophet import Prophet
-import mysql.connector
+import mysql.connector  
 import calendar 
 import google.generativeai as genai
 import os
@@ -37,9 +37,12 @@ def get_db_connection():
     print ("conn",mysql.connector.connect(**db_config))
     return mysql.connector.connect(**db_config)
 
-api_key="AIzaSyCBfI_0IJAlxUWfPrXott1dCHPQBZmX-3c"
-model = genai.GenerativeModel('gemini-1.5-flash')
-genai.configure(api_key="AIzaSyCBfI_0IJAlxUWfPrXott1dCHPQBZmX-3c")
+api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk"
+model = genai.GenerativeModel('gemini-2.5-flash')
+genai.configure(api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk")
+models = genai.list_models()
+for m in models:
+    print(m.name, m.supported_generation_methods)
 
 @app.route('/api/ai',methods=['POST'])
 def get_ai():
@@ -405,7 +408,6 @@ def monthly_expense_trends():
 @app.route('/api/ai/generate/forecast', methods=['POST'])
 def generate_forecast():
     try:
-        # Get user ID from session or token
         user_id = 1 # Implement your auth logic
         con = get_db_connection()
         cursor = con.cursor(dictionary=True)
@@ -415,7 +417,6 @@ def generate_forecast():
         SELECT 
             YEAR(date_time) AS year,
             MONTH(date_time) AS month_num,
-            ANY_VALUE(MONTHNAME(date_time)) AS month,  # Fix here
             category,
             SUM(total) AS total
         FROM expenses
@@ -429,58 +430,104 @@ def generate_forecast():
         cursor.close()
         print ('b')
         # Structure data for AI processing
-        structured_data = {}
-        for row in historical_data:
-            year = row['year']
-            month = row['month']
-            category = row['category']
-            amount = float(row['total'])
-            if year not in structured_data:
-                structured_data[year] = {}
-            if month not in structured_data[year]:
-                structured_data[year][month] = {'total': 0, 'categories': {}}
-            structured_data[year][month]['categories'][category] = amount
-            structured_data[year][month]['total'] += amount
-        # Get current date info
-        current_year = datetime.now().year
-        current_month = datetime.now().strftime('%B')
-        # Prepare categories list
-        categories = list(set(row['category'] for row in historical_data))
-        # Build AI prompt
+        df = pd.DataFrame(historical_data)
+        df['ds'] = pd.to_datetime(df['year'].astype(str) + '-' + df['month_num'].astype(str) + '-01')
+        df['y'] = df['total']
+
+        df_total = df.groupby('ds')['y'].sum().reset_index()
+        if df_total.shape[0] >= 2:
+            m_total = Prophet(yearly_seasonality=True)
+            m_total.fit(df_total)
+            future_total = m_total.make_future_dataframe(periods=6, freq='MS')
+            forecast_total = m_total.predict(future_total)
+            total_forecast = forecast_total[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(6).to_dict('records')
+        else:
+            total_forecast = []
+
+        forecasts = {}
+        for cat in df['category'].unique():
+            df_cat = df[df['category'] == cat].copy()
+            all_months = pd.date_range(df['ds'].min(), df['ds'].max(), freq='MS')
+            df_cat = df_cat.set_index('ds').reindex(all_months, fill_value=0).rename_axis('ds').reset_index()
+
+            if df_cat['y'].count() < 2 or df_cat['y'].sum() == 0:
+                print(f"Skipping category '{cat}': not enough data.")
+                continue
+
+            m = Prophet(yearly_seasonality=True)
+            m.fit(df_cat)
+            future = m.make_future_dataframe(periods=6, freq='MS')
+            forecast = m.predict(future)
+            forecasts[cat] = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(6).to_dict('records')
+
+
         prompt = f"""
-        Act as a senior financial analyst. Generate a comprehensive forecast report based on this historical expense data:
-        **REPORT REQUIREMENTS**
-        1. **Executive Summary**:
-           - 3-sentence overview of financial health
-           - Key spending patterns and anomalies
-        2. **Category Analysis**:
-           {', '.join(categories)}
-           - For each category: 6-month trend analysis + forecast
-        3. **Forecast Projections**:
-           - Next 3 months predictions (table format)
-           - 6-month outlook with confidence intervals
-           - Include both total and category breakdowns
-        4. **Actionable Insights**:
-           - Top 3 cost-saving opportunities
-           - Budget risk assessment
-           - Recommended adjustments
-        5. **Visualization Suggestions**:
-           - Recommended chart types for each insight
-           - How to visualize forecast vs actuals
-        **ANALYSIS PARAMETERS**
-        - Current period: {current_month} {current_year}
-        - Apply Holt-Winters forecasting (alpha=0.8, beta=0.15, gamma=0.1)
-        - Consider 8% annual inflation rate
-        - Factor in seasonal trends (e.g., higher travel in Dec)
-        - Account for business growth projections
-        **OUTPUT FORMAT**
-        - Strict JSON format with these keys:
-            "executive_summary": string,
-            "category_analysis": {{ "Category1": string, ... }},
-            "forecast_table": {{ "headers": [], "rows": [] }},
-            "insights": [string, string, ...],
-            "visualization_suggestions": [string, ...]
+        You are a expert financial analyst.
+        Here are the latest expense forecasts for the next 6 months per category, produced by the Prophet time series model:
+        {forecasts}
+
+        Write a JSON report including:
+        - "executive_summary": 3-sentence summary
+        - "category_analysis": detailed narrative for each category
+        - "forecast_table": repeat the numbers above
+        - "insights": list of actionable insights
+        - "visualization_suggestions": best charts for the data
+        Use only the numbers and trends provided, do not invent new predictions.
+
         """
+
+        # structured_data = {}
+        # for row in historical_data:
+        #     year = row['year']
+        #     month = row['month']
+        #     category = row['category']
+        #     amount = float(row['total'])
+        #     if year not in structured_data:
+        #         structured_data[year] = {}
+        #     if month not in structured_data[year]:
+        #         structured_data[year][month] = {'total': 0, 'categories': {}}
+        #     structured_data[year][month]['categories'][category] = amount
+        #     structured_data[year][month]['total'] += amount
+        # # Get current date info
+        # current_year = datetime.now().year
+        # current_month = datetime.now().strftime('%B')
+        # # Prepare categories list
+        # categories = list(set(row['category'] for row in historical_data))
+        # # Build AI prompt
+        # prompt = f"""
+        # Act as a senior financial analyst. Generate a comprehensive forecast report based on this historical expense data:
+        # **REPORT REQUIREMENTS**
+        # 1. **Executive Summary**:
+        #    - 3-sentence overview of financial health
+        #    - Key spending patterns and anomalies
+        # 2. **Category Analysis**:
+        #    {', '.join(categories)}
+        #    - For each category: 6-month trend analysis + forecast
+        # 3. **Forecast Projections**:
+        #    - Next 3 months predictions (table format)
+        #    - 6-month outlook with confidence intervals
+        #    - Include both total and category breakdowns
+        # 4. **Actionable Insights**:
+        #    - Top 3 cost-saving opportunities
+        #    - Budget risk assessment
+        #    - Recommended adjustments
+        # 5. **Visualization Suggestions**:
+        #    - Recommended chart types for each insight
+        #    - How to visualize forecast vs actuals
+        # **ANALYSIS PARAMETERS**
+        # - Current period: {current_month} {current_year}
+        # - Apply Holt-Winters forecasting (alpha=0.8, beta=0.15, gamma=0.1)
+        # - Consider 8% annual inflation rate
+        # - Factor in seasonal trends (e.g., higher travel in Dec)
+        # - Account for business growth projections
+        # **OUTPUT FORMAT**
+        # - Strict JSON format with these keys:
+        #     "executive_summary": string,
+        #     "category_analysis": {{ "Category1": string, ... }},
+        #     "forecast_table": {{ "headers": [], "rows": [] }},
+        #     "insights": [string, string, ...],
+        #     "visualization_suggestions": [string, ...]
+        # """
         # Generate content
         response = model.generate_content(prompt)
         try:
@@ -532,7 +579,6 @@ def _read_uploaded_table(file_storage):
 
 @app.route('/api/batchUploadExpenses', methods=['POST'])
 def batch_upload_expenses():
-    """Batch insert expenses from uploaded file."""
     file = request.files.get('file')
     if not file:
         return jsonify({'error': 'No file provided'}), 400
@@ -545,6 +591,13 @@ def batch_upload_expenses():
     for col in required:
         if col not in df.columns:
             return jsonify({'error': f'Missing required column {col}'}), 400
+
+    # Convert date_time to MySQL DATETIME format
+    try:
+        df['date_time'] = pd.to_datetime(df['date_time'], errors='raise')
+        df['date_time'] = df['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        return jsonify({'error': f'Date parsing failed: {e}'}), 400
 
     records = []
     for _, row in df.iterrows():
@@ -571,12 +624,13 @@ def batch_upload_expenses():
         con.commit()
         return jsonify({'message': f'{len(records)} expenses uploaded'}), 201
     except mysql.connector.Error as err:
+        import traceback
+        print(traceback.format_exc())
         return jsonify({'error': str(err)}), 500
     finally:
         if 'con' in locals() and con.is_connected():
             cursor.close()
             con.close()
-
 
 @app.route('/api/batchUploadRevenue', methods=['POST'])
 def batch_upload_revenue():

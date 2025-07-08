@@ -98,12 +98,20 @@ const handleBatchUpload = async (event: Event) => {
     getExpenses()
     successMessage.value = 'Batch upload successful!'
   } catch (err) {
+    console.log ('err in line 101',err)
     errorMessage.value = 'Batch upload failed'
   }
 }
 
 const triggerFileInput = () => {
   const input = document.getElementById('fileInput')
+  if (input) {
+    input.click()
+  }
+}
+
+const triggerBatchFileInput = () => {
+  const input = document.getElementById('batchFile') as HTMLInputElement | null
   if (input) {
     input.click()
   }
@@ -277,14 +285,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container">
-    <main class="main-content">
+  <main class="main-content">
       <div class="header-row">
         <h1 class="page-title">Expense Management</h1>
         <div class="button-group">
           <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
           <input type="file" id="batchFile" hidden @change="handleBatchUpload" />
-          <button @click="document.getElementById('batchFile')?.click()" class="new-expense-btn">Batch Upload</button>
+            <button @click="triggerBatchFileInput" class="new-expense-btn">Batch Upload</button>
+          <!-- <button @click="document.getElementById('batchFile')?.click()" class="new-expense-btn">Batch Upload</button> -->
           <button @click="showModal = true" class="new-expense-btn">+ New Expense</button>
         </div>
       </div>
@@ -477,7 +485,6 @@ onMounted(async () => {
         </div>
       </div>
     </main>
-  </div>
 </template>
 
 <style scoped>

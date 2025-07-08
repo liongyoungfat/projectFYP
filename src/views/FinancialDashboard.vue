@@ -41,7 +41,6 @@ interface ForecastReport {
 interface RevenueItem {
   amount: number
   dateTime: string
-  // ...other fields
 }
 
 interface ExpenseItem {
@@ -72,25 +71,30 @@ const renderProfitChart = () => {
   const revenueByMonth: Record<string, number> = {}
   revenueData.value.forEach((item) => {
     if (!item.dateTime) return
-    const m = item.dateTime.slice(0, 7)
+    const dateObj = new Date(item.dateTime)
+    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`  
     revenueByMonth[m] = (revenueByMonth[m] || 0) + Number(item.amount)
   })
+  console.log('rBM', revenueByMonth)
   const expenseByMonth: Record<string, number> = {}
   expensesData.value.forEach((item) => {
     if (!item.dateTime) return
-    const m = item.dateTime.slice(0, 7)
+    const dateObj = new Date(item.dateTime);
+    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
     expenseByMonth[m] = (expenseByMonth[m] || 0) + Number(item.amount)
   })
+  console.log ("eBM",expenseByMonth)
 
   const months = Array.from(
     new Set([...Object.keys(revenueByMonth), ...Object.keys(expenseByMonth)]),
   ).sort()
   const profitValues = months.map((m) => (revenueByMonth[m] || 0) - (expenseByMonth[m] || 0))
+  const monthsLabels = months.map((m) => getMonthLabel(m))
 
   new Chart(profitChart.value, {
     type: 'line',
     data: {
-      labels: months,
+      labels: monthsLabels,
       datasets: [
         {
           label: 'Net Profit (RM)',
@@ -118,10 +122,16 @@ const renderProfitChart = () => {
   })
 }
 
+function getMonthLabel(ym: string) {
+  if (!ym) return '';
+  return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' });
+}
+
 const fetchRevenueData = async () => {
   try {
     const res = await axios.get(localhost + '/api/revenues')
     revenueData.value = res.data
+    console.log('revenueData.value', revenueData.value)
     renderRevenueChart()
     renderProfitChart()
   } catch (err) {
@@ -136,13 +146,17 @@ const renderRevenueChart = () => {
   const monthlyTotals: Record<string, number> = {}
   revenueData.value.forEach((item) => {
     if (!item.dateTime) return
-    const month = item.dateTime.slice(0, 7) // 'YYYY-MM'
+    const dateObj = new Date(item.dateTime)
+    const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
     if (!monthlyTotals[month]) monthlyTotals[month] = 0
     monthlyTotals[month] += Number(item.amount)
   })
 
-  const labels = Object.keys(monthlyTotals).sort()
-  const values = labels.map((month) => monthlyTotals[month])
+  const ymList = Object.keys(monthlyTotals).sort()
+  const labels = ymList.map((m) => getMonthLabel(m))
+  const values = ymList.map((month) => monthlyTotals[month])
+  console.log('labelsss',labels)
+
 
   new Chart(revenueChart.value, {
     type: 'bar',

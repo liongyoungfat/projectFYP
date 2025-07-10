@@ -48,6 +48,12 @@ interface ExpenseItem {
   dateTime: string
 }
 
+const widgetVisible = ref({
+  revenue: true,
+  expenses: true,
+  profit: true,
+})
+
 const totalRevenue = computed(() => revenueData.value.reduce((sum, r) => sum + Number(r.amount), 0))
 const totalExpenses = computed(() =>
   expensesData.value.reduce((sum, e) => sum + Number(e.amount), 0),
@@ -332,6 +338,18 @@ onMounted(() => {
 
 <template>
   <div class="dashboard-container">
+    <div class="toggles">
+      <label>
+        <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend
+      </label>
+      <label>
+        <input type="checkbox" v-model="widgetVisible.expenses" /> Expense Pie
+      </label>
+      <label>
+        <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend
+      </label>
+    </div>
+
     <div class="chart-header">
       <h2>Financial Dashboard</h2>
       <button @click="generateFinancialReport" class="report-btn">
@@ -351,6 +369,9 @@ onMounted(() => {
         <h4>Net Profit</h4>
         <p>{{ netProfit.toFixed(2) }}</p>
       </div>
+    </div>
+    <div class="widgets">
+      <div v-if="widgetVisible.revenue"/>
     </div>
     <div class="dashboard-chart mb-3">
       <h3>Revenue Over Time</h3>
@@ -446,6 +467,18 @@ onMounted(() => {
 .summary-card h4 {
   margin-bottom: 0.5em;
   font-weight: 600;
+}
+
+.widgets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.widgets > * {
+  flex: 1 1 300px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
 }
 
 .chart-container {

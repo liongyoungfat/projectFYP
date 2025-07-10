@@ -40,9 +40,9 @@ def get_db_connection():
 api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk"
 model = genai.GenerativeModel('gemini-2.5-flash')
 genai.configure(api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk")
-models = genai.list_models()
-for m in models:
-    print(m.name, m.supported_generation_methods)
+# models = genai.list_models()
+# for m in models:
+#     print(m.name, m.supported_generation_methods)
 
 @app.route('/api/ai',methods=['POST'])
 def get_ai():
@@ -445,13 +445,16 @@ def generate_forecast():
             total_forecast = []
 
         forecasts = {}
+        insufficient = []
         for cat in df['category'].unique():
             df_cat = df[df['category'] == cat].copy()
             all_months = pd.date_range(df['ds'].min(), df['ds'].max(), freq='MS')
             df_cat = df_cat.set_index('ds').reindex(all_months, fill_value=0).rename_axis('ds').reset_index()
 
-            if df_cat['y'].count() < 2 or df_cat['y'].sum() == 0:
+            non_zero_months = (df_cat['y'] > 0).sum()
+            if non_zero_months < 3:
                 print(f"Skipping category '{cat}': not enough data.")
+                insufficient.append(cat)
                 continue
 
             m = Prophet(yearly_seasonality=True)
@@ -460,20 +463,61 @@ def generate_forecast():
             forecast = m.predict(future)
             forecasts[cat] = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(6).to_dict('records')
 
+        # Get current date info
+        current_year = datetime.now().year
+        current_month = datetime.now().strftime('%B')
 
         prompt = f"""
-        You are a expert financial analyst.
+        Act as a expert financial analyst writing for a Malaysian audience. 
+        Generate a comprehensive forecast report based on this historical expense data. 
+        Format all monetary values as 'RM' (Ringgit Malaysia) instead of '$'. 
+        Use only simple, business-friendly language.
+
         Here are the latest expense forecasts for the next 6 months per category, produced by the Prophet time series model:
         {forecasts}
+        The following categories had insufficient data for reliable prediction: {insufficient}
+        
+        **REPORT REQUIREMENTS**
+        1. Executive Summary:
+        - 3-sentence overview of financial health.
+        - Key spending patterns and anomalies.
+        2. Category Analysis:
+        - If data is sufficient, provide a clear 6-month trend and forecast in simple business language.
+        - If data is insufficient, state: "No reliable forecast for [Category] due to limited data. Please input more records for better prediction."
+        - Remind the user if any category has insufficient data in the "category_analysis".
+        3. Forecast Table:
+        - use the numbers above
+        - Show category, date, 'Forecast Amount (RM)', 'Minimum Estimate (RM)', 'Maximum Estimate (RM)' as columns.
+        - Do NOT use technical terms like yhat; use business terms as above.
+        - All numbers must show 'RM' before the value (e.g., RM 2,000.00).
+        - In the "forecast_table", include all categories—even those with insufficient data. For insufficient data categories, fill their forecast values as "Insufficient Data".
+        - All table headers must be: ["Category", "Date", "Forecast Amount (RM)", "Minimum Estimate (RM)", "Maximum Estimate (RM)"].
+        - Do **not** use technical terms like yhat, yhat_lower, or yhat_upper. Use only the above headers in business language.
+        4. Actionable Insights:
+        - Top 3 cost-saving opportunities (plain text, no bold).
+        - Budget risk assessment.
+        - Recommended adjustments.
+        - list of actionable insights
+        5. Visualization Suggestions:
+        - Recommended chart types for each insight (plain text, no bold).
 
-        Write a JSON report including:
-        - "executive_summary": 3-sentence summary
-        - "category_analysis": detailed narrative for each category
-        - "forecast_table": repeat the numbers above
-        - "insights": list of actionable insights
-        - "visualization_suggestions": best charts for the data
-        Use only the numbers and trends provided, do not invent new predictions.
+        **Instructions:**
+        1. All monetary values must start with RM and use comma as thousands separator (e.g., RM 12,000.00).
+        2. Use simple, everyday language that normal business users can easily understand.
 
+        **ANALYSIS PARAMETERS**
+        - Current period: {current_month} {current_year}
+        - Apply Holt-Winters forecasting (alpha=0.8, beta=0.15, gamma=0.1)
+        - Consider 8% annual inflation rate
+        - Factor in seasonal trends (e.g., higher travel in Dec)
+        - Account for business growth projections
+        **OUTPUT FORMAT**
+        - Strict JSON format with these keys:
+            "executive_summary": string,
+            "category_analysis": {{ "Category1": string, ... }},
+            "forecast_table": {{ "headers": [], "rows": [] }},
+            "insights": [string, string, ...],
+            "visualization_suggestions": [string, ...]
         """
 
         # structured_data = {}
@@ -520,13 +564,7 @@ def generate_forecast():
         # - Consider 8% annual inflation rate
         # - Factor in seasonal trends (e.g., higher travel in Dec)
         # - Account for business growth projections
-        # **OUTPUT FORMAT**
-        # - Strict JSON format with these keys:
-        #     "executive_summary": string,
-        #     "category_analysis": {{ "Category1": string, ... }},
-        #     "forecast_table": {{ "headers": [], "rows": [] }},
-        #     "insights": [string, string, ...],
-        #     "visualization_suggestions": [string, ...]
+
         # """
         # Generate content
         response = model.generate_content(prompt)

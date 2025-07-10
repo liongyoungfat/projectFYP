@@ -72,18 +72,18 @@ const renderProfitChart = () => {
   revenueData.value.forEach((item) => {
     if (!item.dateTime) return
     const dateObj = new Date(item.dateTime)
-    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`  
+    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
     revenueByMonth[m] = (revenueByMonth[m] || 0) + Number(item.amount)
   })
   console.log('rBM', revenueByMonth)
   const expenseByMonth: Record<string, number> = {}
   expensesData.value.forEach((item) => {
     if (!item.dateTime) return
-    const dateObj = new Date(item.dateTime);
-    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+    const dateObj = new Date(item.dateTime)
+    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
     expenseByMonth[m] = (expenseByMonth[m] || 0) + Number(item.amount)
   })
-  console.log ("eBM",expenseByMonth)
+  console.log('eBM', expenseByMonth)
 
   const months = Array.from(
     new Set([...Object.keys(revenueByMonth), ...Object.keys(expenseByMonth)]),
@@ -123,8 +123,8 @@ const renderProfitChart = () => {
 }
 
 function getMonthLabel(ym: string) {
-  if (!ym) return '';
-  return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' });
+  if (!ym) return ''
+  return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' })
 }
 
 const fetchRevenueData = async () => {
@@ -155,8 +155,7 @@ const renderRevenueChart = () => {
   const ymList = Object.keys(monthlyTotals).sort()
   const labels = ymList.map((m) => getMonthLabel(m))
   const values = ymList.map((month) => monthlyTotals[month])
-  console.log('labelsss',labels)
-
+  console.log('labelsss', labels)
 
   new Chart(revenueChart.value, {
     type: 'bar',
@@ -376,6 +375,7 @@ onMounted(() => {
           <div v-if="forecastResponse">
             <h4>Executive Summary</h4>
             <p>{{ forecastResponse.executive_summary }}</p>
+            <div class="pdf-page-break"></div>
             <h4>Category Analysis</h4>
             <ul>
               <li v-for="(desc, cat) in forecastResponse.category_analysis" :key="cat">
@@ -384,6 +384,7 @@ onMounted(() => {
               </li>
             </ul>
 
+            <div class="pdf-page-break"></div>
             <h4>Forecast Table</h4>
             <table>
               <thead>
@@ -400,11 +401,13 @@ onMounted(() => {
               </tbody>
             </table>
 
+            <div class="pdf-page-break"></div>
             <h4>Insights</h4>
             <ul>
               <li v-for="insight in forecastResponse.insights" :key="insight">{{ insight }}</li>
             </ul>
 
+            <div class="pdf-page-break"></div>
             <h4>Visualization Suggestions</h4>
             <ul>
               <li
@@ -504,10 +507,10 @@ onMounted(() => {
   background: #fff;
   color: #222;
   padding: 2rem;
-  border-radius: 16px;
+  border-radius: 24px;
   box-shadow: 0 6px 32px rgba(0, 0, 0, 0.12);
-  width: 600px;
-  max-width: 90vw;
+  width: 100%;
+  max-width: 100%;
   margin: 3rem auto;
   font-family: 'Segoe UI', Arial, sans-serif;
 }
@@ -530,21 +533,28 @@ onMounted(() => {
 #forecast-report-content table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1rem 0;
+  margin: 24px 0;
+  font-size: 16px;
   background: #fafafa;
-  font-size: 1rem;
 }
 
 #forecast-report-content th,
 #forecast-report-content td {
   border: 1px solid #e0e0e0;
   padding: 0.5rem 0.75rem;
-  text-align: left;
+  text-align: center;
+}
+
+#forecast-report-content,
+#forecast-report-content p,
+#forecast-report-content li {
+  text-align: justify;
 }
 
 #forecast-report-content th {
   background: #e3f2fd;
   color: #222;
+  font-weight: 600;
 }
 
 .forecast-report-content td {
@@ -552,6 +562,10 @@ onMounted(() => {
   border: 1px solid #e0e0e0;
   padding: 0.5rem 0.75rem;
   text-align: left;
+}
+
+#forecast-report-content {
+  overflow-x: visible !important;
 }
 
 .forecast-modal h3 {
@@ -591,6 +605,13 @@ onMounted(() => {
 
 .forecast-modal th {
   background: #e3f2fd;
+}
+
+.pdf-page-break {
+  display: block;
+  height: 0;
+  page-break-before: always;
+  break-before: page;
 }
 
 /* Hide .no-print elements in print/export */

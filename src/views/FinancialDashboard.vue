@@ -126,6 +126,87 @@ function getMonthLabel(ym: string) {
   if (!ym) return ''
   return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' })
 }
+interface ExpenseItem {
+  amount: number
+  dateTime: string
+}
+
+const totalRevenue = computed(() =>
+  revenueData.value.reduce((sum, r) => sum + Number(r.amount), 0),
+)
+const totalExpenses = computed(() =>
+  expensesData.value.reduce((sum, e) => sum + Number(e.amount), 0),
+)
+const netProfit = computed(() => totalRevenue.value - totalExpenses.value)
+
+const fetchExpenseData = async () => {
+  try {
+    const res = await axios.get(localhost + 'api/expenses')
+    expensesData.value = res.data
+    renderProfitChart()
+  } catch (err) {
+    console.error('Failed to fetch expense data:', err)
+  }
+}
+
+const renderProfitChart = () => {
+  if (
+    !profitChart.value ||
+    revenueData.value.length === 0 ||
+    expensesData.value.length === 0
+  )
+    return
+
+  const revenueByMonth: Record<string, number> = {}
+  revenueData.value.forEach((item) => {
+    if (!item.dateTime) return
+    const m = item.dateTime.slice(0, 7)
+    revenueByMonth[m] = (revenueByMonth[m] || 0) + Number(item.amount)
+  })
+  const expenseByMonth: Record<string, number> = {}
+  expensesData.value.forEach((item) => {
+    if (!item.dateTime) return
+    const m = item.dateTime.slice(0, 7)
+    expenseByMonth[m] = (expenseByMonth[m] || 0) + Number(item.amount)
+  })
+
+  const months = Array.from(
+    new Set([...Object.keys(revenueByMonth), ...Object.keys(expenseByMonth)]),
+  ).sort()
+  const profitValues = months.map(
+    (m) => (revenueByMonth[m] || 0) - (expenseByMonth[m] || 0),
+  )
+
+  new Chart(profitChart.value, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Net Profit (RM)',
+          data: profitValues,
+          borderColor: '#ff6384',
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Net Profit Trend' },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Amount (RM)' },
+        },
+        x: {
+          title: { display: true, text: 'Month' },
+        },
+      },
+    },
+  })
+}
 
 const fetchRevenueData = async () => {
   try {
@@ -452,6 +533,26 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+}
+
+.summary-row {
+  display: flex;
+  gap: 20px;
+  margin: 1em 0;
+}
+
+.summary-card {
+  flex: 1;
+  background: #fff;
+  padding: 1em;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.summary-card h4 {
+  margin-bottom: 0.5em;
+  font-weight: 600;
 }
 
 .chart-wrapper {

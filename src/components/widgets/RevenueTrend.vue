@@ -1,58 +1,96 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
+import axios from 'axios'
 Chart.register(...registerables)
 
 interface RevenueItem {
-  date: string
+  dateTime: string
   amount: number
 }
 
-const props = defineProps<{ data: RevenueItem[] }>()
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-let chart: Chart | null = null
+const revenueChart = ref<HTMLCanvasElement | null>(null)
+const revenueData = ref<RevenueItem[]>([])
+const localhost = 'http://localhost:5000/'
 
-const renderChart = () => {
-  if (!canvasRef.value) return
-  const monthly: Record<string, number> = {}
-  props.data.forEach((d) => {
-    const m = d.date.slice(0, 7)
-    monthly[m] = (monthly[m] || 0) + d.amount
+const fetchRevenueData = async () => {
+  try {
+    const res = await axios.get(localhost + '/api/revenues')
+    revenueData.value = res.data
+    console.log('revenueData.value', revenueData.value)
+    renderRevenueChart()
+  } catch (err) {
+    console.error('Failed to fetch revenue data:', err)
+  }
+}
+function getMonthLabel(ym: string) {
+  if (!ym) return ''
+  return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' })
+}
+
+const renderRevenueChart = () => {
+  if (!revenueChart.value) return
+
+  // Group by month for visualization
+  const monthlyTotals: Record<string, number> = {}
+  revenueData.value.forEach((item) => {
+    if (!item.dateTime) return
+    const dateObj = new Date(item.dateTime)
+    const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
+    if (!monthlyTotals[month]) monthlyTotals[month] = 0
+    monthlyTotals[month] += Number(item.amount)
   })
-  const labels = Object.keys(monthly).sort()
-  const values = labels.map((l) => monthly[l])
 
-  if (chart) chart.destroy()
-  chart = new Chart(canvasRef.value, {
+  const ymList = Object.keys(monthlyTotals).sort()
+  const labels = ymList.map((m) => getMonthLabel(m))
+  const values = ymList.map((month) => monthlyTotals[month])
+  console.log('labelsss', labels)
+
+  new Chart(revenueChart.value, {
     type: 'bar',
     data: {
       labels,
       datasets: [
         {
-          label: 'Revenue',
+          label: 'Revenue (RM)',
           data: values,
-          backgroundColor: '#3b82f6',
+          backgroundColor: '#36A2EB',
         },
       ],
     },
     options: {
       responsive: true,
-      plugins: { title: { display: true, text: 'Revenue Trend' } },
+      plugins: {
+        title: {
+          display: true,
+          text: `Monthly Revenue Trend`,
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Amount (RM)',
+          },
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Month',
+          },
+        },
+      },
     },
   })
 }
 
-watch(
-  () => props.data,
-  () => renderChart(),
-  { deep: true, immediate: true },
-)
-
-onMounted(renderChart)
+onMounted(fetchRevenueData)
 </script>
 <template>
-  <div class="widget">
-    <canvas ref="canvasRef"></canvas>
+  <div class="dashboard-chart mb-3">
+    <h3>Revenue Over Time</h3>
+    <canvas ref="revenueChart" height="90"></canvas>
   </div>
 </template>
 

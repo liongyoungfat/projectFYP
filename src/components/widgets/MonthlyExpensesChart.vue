@@ -5,65 +5,64 @@ import axios from 'axios'
 
 Chart.register(...registerables)
 
-const categoryChart = ref<HTMLCanvasElement | null>(null)
 const monthlyChart = ref<HTMLCanvasElement | null>(null)
 const currentYear = new Date().getFullYear()
-const currentMonth = new Date().getMonth() + 1
 const localhost = 'http://localhost:5000/'
 
-interface CategoryDataItem {
-  category: string
+interface MonthlyDataItem {
+  month_name: string
   total_amount: number
 }
 
 const fetchChartData = async () => {
   try {
-    // Category data for pie chart
-    const categoryResponse = await axios.get(localhost + '/api/expenses/summary/category', {
-      params: { year: currentYear, month: currentMonth },
-    })
-
-    // Monthly data for bar chart
     const monthlyResponse = await axios.get(localhost + '/api/expenses/summary/monthly', {
       params: { year: currentYear },
     })
-    console.log('categoryResponse.data', categoryResponse.data, monthlyResponse.data)
-    renderCharts(categoryResponse.data)
+    console.log(' monthlyResponse.data', monthlyResponse.data)
+    renderCharts(monthlyResponse.data)
   } catch (error) {
     console.error('Error fetching chart data:', error)
   }
 }
 
-const renderCharts = (categoryData: CategoryDataItem[]) => {
-  if (!categoryChart.value) return
-
-  // Pie Chart (By Category)
-  new Chart(categoryChart.value, {
-    type: 'pie',
+const renderCharts = (monthlyData: MonthlyDataItem[]) => {
+  if (!monthlyChart.value) return
+  new Chart(monthlyChart.value, {
+    type: 'bar',
     data: {
-      labels: categoryData.map((item) => item.category),
+      labels: monthlyData.map((item) => item.month_name),
       datasets: [
         {
-          data: categoryData.map((item) => item.total_amount),
-          backgroundColor: [
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
-            '#9966FF',
-            '#FF9F40',
-            '#8AC926',
-            '#1982C4',
-          ],
+          label: 'Monthly Expenses',
+          data: monthlyData.map((item) => item.total_amount),
+          backgroundColor: '#4BC0C0',
+          borderColor: '#4BC0C0',
+          borderWidth: 1,
         },
       ],
     },
     options: {
       responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Amount',
+          },
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Month',
+          },
+        },
+      },
       plugins: {
         title: {
           display: true,
-          text: `Expenses by Category (${new Date().toLocaleString('default', { month: 'long' })})`,
+          text: `Monthly Expenses Trend (${currentYear})`,
         },
       },
     },
@@ -77,7 +76,7 @@ onMounted(() => {
 <template>
   <div class="chart-container">
     <div class="chart-wrapper">
-      <canvas ref="categoryChart"></canvas>
+      <canvas ref="monthlyChart"></canvas>
     </div>
   </div>
 </template>
@@ -101,4 +100,12 @@ onMounted(() => {
   flex-direction: column;
   justify-content: center;
 }
+
+canvas {
+  width: 100% !important;
+  max-width: 100%;
+  height: 340px !important;
+  display: block;
+}
+
 </style>

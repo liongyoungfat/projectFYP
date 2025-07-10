@@ -4,6 +4,10 @@ import { Bar } from 'vue-chartjs'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
+import RevenueTrend from '@/components/widgets/RevenueTrend.vue'
+import ExpensePie from '@/components/widgets/ExpensePie.vue'
+import ProfitTrend from '@/components/widgets/ProfitTrend.vue'
+import MonthlyExpensesChart from '@/components/widgets/MonthlyExpensesChart.vue'
 
 Chart.register(...registerables)
 
@@ -19,6 +23,8 @@ const localhost = 'http://localhost:5000/'
 const forecastResponse = ref<ForecastReport | null>(null)
 const revenueData = ref<RevenueItem[]>([])
 const expensesData = ref<ExpenseItem[]>([])
+
+const showWidgetDropdown = ref(false)
 
 interface CategoryDataItem {
   category: string
@@ -52,6 +58,7 @@ const widgetVisible = ref({
   revenue: true,
   expenses: true,
   profit: true,
+  monthlyExpensesChart: true,
 })
 
 const totalRevenue = computed(() => revenueData.value.reduce((sum, r) => sum + Number(r.amount), 0))
@@ -147,8 +154,6 @@ const fetchRevenueData = async () => {
 
 const renderRevenueChart = () => {
   if (!revenueChart.value) return
-
-  // Group by month for visualization
   const monthlyTotals: Record<string, number> = {}
   revenueData.value.forEach((item) => {
     if (!item.dateTime) return
@@ -338,23 +343,23 @@ onMounted(() => {
 
 <template>
   <div class="dashboard-container">
-    <div class="toggles">
-      <label>
-        <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend
-      </label>
-      <label>
-        <input type="checkbox" v-model="widgetVisible.expenses" /> Expense Pie
-      </label>
-      <label>
-        <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend
-      </label>
-    </div>
-
     <div class="chart-header">
       <h2>Financial Dashboard</h2>
       <button @click="generateFinancialReport" class="report-btn">
         <i class="fas fa-file-alt"></i> Generate Financial Report
       </button>
+
+      <div class="toggle-dropdown">
+        <button @click="showWidgetDropdown = !showWidgetDropdown">Select Widgets ▾</button>
+        <div v-if="showWidgetDropdown" class="dropdown-menu">
+          <label> <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend </label>
+          <label> <input type="checkbox" v-model="widgetVisible.expenses" /> Expense Pie </label>
+          <label> <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend </label>
+          <label>
+            <input type="checkbox" v-model="widgetVisible.monthlyExpensesChart" /> Monthly Expenses
+          </label>
+        </div>
+      </div>
     </div>
     <div class="summary-row">
       <div class="summary-card">
@@ -371,22 +376,11 @@ onMounted(() => {
       </div>
     </div>
     <div class="widgets">
-      <div v-if="widgetVisible.revenue"/>
-    </div>
-    <div class="dashboard-chart mb-3">
-      <h3>Revenue Over Time</h3>
-      <canvas ref="revenueChart" height="90"></canvas>
-    </div>
-    <div class="dashboard-chart mb-3">
-      <h3>Net Profit Trend</h3>
-      <canvas ref="profitChart" height="90"></canvas>
-    </div>
-    <div class="chart-container">
-      <div class="chart-wrapper">
-        <canvas ref="categoryChart"></canvas>
-      </div>
-      <div class="chart-wrapper">
-        <canvas ref="monthlyChart"></canvas>
+      <div class="widgets">
+        <RevenueTrend v-if="widgetVisible.revenue" />
+        <ProfitTrend v-if="widgetVisible.profit" />
+        <ExpensePie v-if="widgetVisible.expenses" />
+        <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart" />
       </div>
     </div>
     <div v-if="showForecastModal" class="modal-overlay">
@@ -448,10 +442,32 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.dashboard-container {
+  background: #191c20;
+  min-height: 100vh;
+  padding: 28px 16px 32px 16px;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+h2 {
+  color: #f9fafb;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
 .summary-row {
   display: flex;
   gap: 20px;
   margin: 1em 0;
+  flex-wrap: wrap;
 }
 
 .summary-card {
@@ -470,15 +486,37 @@ onMounted(() => {
 }
 
 .widgets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(370px, 1fr));
+  gap: 24px;
+  margin-bottom: 36px;
 }
+
+.widgets {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+
 .widgets > * {
-  flex: 1 1 300px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  width: 100%;
+  background: #f4fafe;
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 4px 14px #0001;
+  padding: 18px 22px 15px 22px;
+  transition: box-shadow 0.12s;
+  min-height: 380px; /* or whatever min height works for your charts */
+}
+
+.widget canvas,
+.widget > canvas {
+  width: 100% !important;
+  height: 340px !important; /* or adjust to taste */
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
 }
 
 .chart-container {
@@ -498,11 +536,11 @@ onMounted(() => {
 }
 
 .dashboard-chart {
-  margin: 1.5em 0;
   background: #f4fafe;
-  padding: 1em 2em;
-  border-radius: 14px;
-  box-shadow: 0 4px 18px #0001;
+  border-radius: 18px;
+  box-shadow: 0 4px 14px #0001;
+  padding: 20px 30px 16px 30px;
+  margin-bottom: 30px;
 }
 
 /* Report Button */
@@ -518,12 +556,64 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-right: 18px;
+  box-shadow: 0 4px 15px rgba(76, 110, 176, 0.18);
 }
 
 .report-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px) scale(1.1);
+  background: linear-gradient(to right, #35598f, #181e29);
+}
+
+.toggle-dropdown {
+  position: relative;
+}
+
+.toggle-dropdown button {
+  background: #23262f;
+  color: #f9fafb;
+  font-weight: 600;
+  padding: 7px 18px;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 1px 8px #0002;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.toggle-dropdown button:hover {
+  background: #333643;
+}
+
+.dropdown-menu {
+  position: absolute;
+  left: 0;
+  top: 110%;
+  min-width: 200px;
+  background: #22252c;
+  border-radius: 10px;
+  box-shadow: 0 4px 22px #0005;
+  padding: 16px 14px 10px 14px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dropdown-menu label {
+  color: #f9fafb;
+  font-weight: 500;
+  font-size: 1.07em;
+  cursor: pointer;
+  transition: color 0.12s;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-menu input[type='checkbox'] {
+  margin-right: 7px;
+  accent-color: #36a2eb;
 }
 
 .close-btn {

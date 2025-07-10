@@ -16,9 +16,6 @@
         <router-link to="/tax" class="nav-link" active-class="active">
           Tax
         </router-link>
-        <router-link to="/customizer" class="nav-link" active-class="active">
-          Custom Dashboard
-        </router-link>
       </nav>
     </div>
   </div>

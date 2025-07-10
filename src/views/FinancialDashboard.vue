@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { Bar } from 'vue-chartjs'
+import { ref, computed } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
@@ -11,12 +10,6 @@ import MonthlyExpensesChart from '@/components/widgets/MonthlyExpensesChart.vue'
 
 Chart.register(...registerables)
 
-const categoryChart = ref<HTMLCanvasElement | null>(null)
-const monthlyChart = ref<HTMLCanvasElement | null>(null)
-const revenueChart = ref<HTMLCanvasElement | null>(null)
-const profitChart = ref<HTMLCanvasElement | null>(null)
-const currentYear = new Date().getFullYear()
-const currentMonth = new Date().getMonth() + 1
 const showForecastModal = ref(false)
 const localhost = 'http://localhost:5000/'
 
@@ -26,15 +19,6 @@ const expensesData = ref<ExpenseItem[]>([])
 
 const showWidgetDropdown = ref(false)
 
-interface CategoryDataItem {
-  category: string
-  total_amount: number
-}
-
-interface MonthlyDataItem {
-  month_name: string
-  total_amount: number
-}
 
 interface ForecastReport {
   executive_summary: string
@@ -67,245 +51,6 @@ const totalExpenses = computed(() =>
 )
 const netProfit = computed(() => totalRevenue.value - totalExpenses.value)
 
-const fetchExpenseData = async () => {
-  try {
-    const res = await axios.get(localhost + 'api/expenses')
-    expensesData.value = res.data
-    renderProfitChart()
-  } catch (err) {
-    console.error('Failed to fetch expense data:', err)
-  }
-}
-
-const renderProfitChart = () => {
-  if (!profitChart.value || revenueData.value.length === 0 || expensesData.value.length === 0)
-    return
-
-  const revenueByMonth: Record<string, number> = {}
-  revenueData.value.forEach((item) => {
-    if (!item.dateTime) return
-    const dateObj = new Date(item.dateTime)
-    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
-    revenueByMonth[m] = (revenueByMonth[m] || 0) + Number(item.amount)
-  })
-  console.log('rBM', revenueByMonth)
-  const expenseByMonth: Record<string, number> = {}
-  expensesData.value.forEach((item) => {
-    if (!item.dateTime) return
-    const dateObj = new Date(item.dateTime)
-    const m = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
-    expenseByMonth[m] = (expenseByMonth[m] || 0) + Number(item.amount)
-  })
-  console.log('eBM', expenseByMonth)
-
-  const months = Array.from(
-    new Set([...Object.keys(revenueByMonth), ...Object.keys(expenseByMonth)]),
-  ).sort()
-  const profitValues = months.map((m) => (revenueByMonth[m] || 0) - (expenseByMonth[m] || 0))
-  const monthsLabels = months.map((m) => getMonthLabel(m))
-
-  new Chart(profitChart.value, {
-    type: 'line',
-    data: {
-      labels: monthsLabels,
-      datasets: [
-        {
-          label: 'Net Profit (RM)',
-          data: profitValues,
-          borderColor: '#ff6384',
-          fill: false,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        title: { display: true, text: 'Net Profit Trend' },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Amount (RM)' },
-        },
-        x: {
-          title: { display: true, text: 'Month' },
-        },
-      },
-    },
-  })
-}
-
-function getMonthLabel(ym: string) {
-  if (!ym) return ''
-  return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' })
-}
-
-const fetchRevenueData = async () => {
-  try {
-    const res = await axios.get(localhost + '/api/revenues')
-    revenueData.value = res.data
-    console.log('revenueData.value', revenueData.value)
-    renderRevenueChart()
-    renderProfitChart()
-  } catch (err) {
-    console.error('Failed to fetch revenue data:', err)
-  }
-}
-
-const renderRevenueChart = () => {
-  if (!revenueChart.value) return
-  const monthlyTotals: Record<string, number> = {}
-  revenueData.value.forEach((item) => {
-    if (!item.dateTime) return
-    const dateObj = new Date(item.dateTime)
-    const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
-    if (!monthlyTotals[month]) monthlyTotals[month] = 0
-    monthlyTotals[month] += Number(item.amount)
-  })
-
-  const ymList = Object.keys(monthlyTotals).sort()
-  const labels = ymList.map((m) => getMonthLabel(m))
-  const values = ymList.map((month) => monthlyTotals[month])
-  console.log('labelsss', labels)
-
-  new Chart(revenueChart.value, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Revenue (RM)',
-          data: values,
-          backgroundColor: '#36A2EB',
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: `Monthly Revenue Trend`,
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Amount (RM)',
-          },
-        },
-        x: {
-          title: {
-            display: true,
-            text: 'Month',
-          },
-        },
-      },
-    },
-  })
-}
-
-const fetchChartData = async () => {
-  try {
-    // Category data for pie chart
-    const categoryResponse = await axios.get(localhost + '/api/expenses/summary/category', {
-      params: { year: currentYear, month: currentMonth },
-    })
-
-    // Monthly data for bar chart
-    const monthlyResponse = await axios.get(localhost + '/api/expenses/summary/monthly', {
-      params: { year: currentYear },
-    })
-    console.log(
-      'categoryResponse.data, monthlyResponse.data',
-      categoryResponse.data,
-      monthlyResponse.data,
-    )
-    renderCharts(categoryResponse.data, monthlyResponse.data)
-  } catch (error) {
-    console.error('Error fetching chart data:', error)
-  }
-}
-
-const renderCharts = (categoryData: CategoryDataItem[], monthlyData: MonthlyDataItem[]) => {
-  if (!categoryChart.value || !monthlyChart.value) return
-
-  // Pie Chart (By Category)
-  new Chart(categoryChart.value, {
-    type: 'pie',
-    data: {
-      labels: categoryData.map((item) => item.category),
-      datasets: [
-        {
-          data: categoryData.map((item) => item.total_amount),
-          backgroundColor: [
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
-            '#9966FF',
-            '#FF9F40',
-            '#8AC926',
-            '#1982C4',
-          ],
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: `Expenses by Category (${new Date().toLocaleString('default', { month: 'long' })})`,
-        },
-      },
-    },
-  })
-
-  // Bar Chart (Monthly Trends)
-  new Chart(monthlyChart.value, {
-    type: 'bar',
-    data: {
-      labels: monthlyData.map((item) => item.month_name),
-      datasets: [
-        {
-          label: 'Monthly Expenses',
-          data: monthlyData.map((item) => item.total_amount),
-          backgroundColor: '#4BC0C0',
-          borderColor: '#4BC0C0',
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Amount',
-          },
-        },
-        x: {
-          title: {
-            display: true,
-            text: 'Month',
-          },
-        },
-      },
-      plugins: {
-        title: {
-          display: true,
-          text: `Monthly Expenses Trend (${currentYear})`,
-        },
-      },
-    },
-  })
-}
-
 const generateFinancialReport = async () => {
   try {
     const fr = await axios.post(localhost + '/api/ai/generate/forecast')
@@ -333,12 +78,6 @@ const exportForecastPDF = () => {
     })
     .save()
 }
-
-onMounted(() => {
-  fetchChartData()
-  fetchRevenueData()
-  fetchExpenseData()
-})
 </script>
 
 <template>
@@ -377,10 +116,10 @@ onMounted(() => {
     </div>
     <div class="widgets">
       <div class="widgets">
-        <RevenueTrend v-if="widgetVisible.revenue" />
-        <ProfitTrend v-if="widgetVisible.profit" />
-        <ExpensePie v-if="widgetVisible.expenses" />
-        <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart" />
+        <RevenueTrend v-if="widgetVisible.revenue"/>
+        <ProfitTrend v-if="widgetVisible.profit"/>
+        <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart"/>
+        <ExpensePie v-if="widgetVisible.expenses"/>
       </div>
     </div>
     <div v-if="showForecastModal" class="modal-overlay">

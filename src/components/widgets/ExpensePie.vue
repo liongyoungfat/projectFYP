@@ -6,7 +6,6 @@ import axios from 'axios'
 Chart.register(...registerables)
 
 const categoryChart = ref<HTMLCanvasElement | null>(null)
-const monthlyChart = ref<HTMLCanvasElement | null>(null)
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
 const localhost = 'http://localhost:5000/'

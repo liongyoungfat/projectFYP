@@ -41,6 +41,8 @@ const widgetVisible = ref({
   profit: true,
 })
 
+const showWidgetDropdown = ref(false)
+
 const filterItem = (item: Item) => {
   if (startDate.value && new Date(item.date) < new Date(startDate.value)) return false
   if (endDate.value && new Date(item.date) > new Date(endDate.value)) return false
@@ -68,16 +70,21 @@ const filteredExpenses = computed(() => expenseData.value.filter(filterItem))
           <option v-for="b in branches" :key="b" :value="b">{{ b }}</option>
         </select>
       </div>
-      <div class="toggles">
-        <label>
-          <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend
-        </label>
-        <label>
-          <input type="checkbox" v-model="widgetVisible.expenses" /> Expense Pie
-        </label>
-        <label>
-          <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend
-        </label>
+      <div class="toggle-dropdown">
+        <button @click="showWidgetDropdown = !showWidgetDropdown">
+          Select Widgets ▾
+        </button>
+        <div v-if="showWidgetDropdown" class="dropdown-menu">
+          <label>
+            <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend
+          </label>
+          <label>
+            <input type="checkbox" v-model="widgetVisible.expenses" /> Expense Pie
+          </label>
+          <label>
+            <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend
+          </label>
+        </div>
       </div>
     </div>
 
@@ -110,9 +117,35 @@ const filteredExpenses = computed(() => expenseData.value.filter(filterItem))
 .filters > * {
   margin-right: 0.5rem;
 }
-.toggles label {
-  margin-right: 1rem;
-  user-select: none;
+.toggle-dropdown {
+  position: relative;
+}
+.toggle-dropdown button {
+  background: #e5e7eb;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dropdown-menu {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 10;
+}
+.dropdown-menu label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 .widgets {
   display: flex;

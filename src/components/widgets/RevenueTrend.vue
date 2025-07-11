@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
+import html2pdf from 'html2pdf.js'
+
 Chart.register(...registerables)
 
 interface RevenueItem {
@@ -115,6 +117,26 @@ const renderRevenueChart = () => {
   })
 }
 
+const exportRevenueChart = () => {
+  const container = document.getElementById('revenue-chart-container')
+  if (!container) return
+
+  const now = new Date()
+  const timestamp =
+    now.toISOString().split('T')[0] + '_' + now.toTimeString().split(' ')[0].replace(/:/g, '-')
+  const filename = `RevenueTrend_${timestamp}.pdf`
+
+  const opt = {
+    margin: 0.3,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+  }
+
+  html2pdf().set(opt).from(container).save()
+}
+
 onMounted(fetchRevenueData)
 </script>
 <template>
@@ -130,7 +152,12 @@ onMounted(fetchRevenueData)
         <button @click="resetDateFilter">Reset</button>
       </div>
     </div>
-    <canvas ref="revenueChart" height="90"></canvas>
+    <div class="export-controls">
+      <button @click="exportRevenueChart">Export as PDF</button>
+    </div>
+    <div id="revenue-chart-container">
+      <canvas ref="revenueChart" height="90"></canvas>
+    </div>
   </div>
 </template>
 
@@ -163,7 +190,7 @@ onMounted(fetchRevenueData)
   font-weight: bold;
 }
 
-.date-range-picker input[type="date"] {
+.date-range-picker input[type='date'] {
   padding: 5px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -171,7 +198,7 @@ onMounted(fetchRevenueData)
 
 .date-range-picker button {
   padding: 5px 10px;
-  background-color: #36A2EB;
+  background-color: #36a2eb;
   color: white;
   border: none;
   border-radius: 4px;
@@ -180,6 +207,34 @@ onMounted(fetchRevenueData)
 
 .date-range-picker button:hover {
   background-color: #2a8acb;
+}
+
+#revenue-chart-container {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  margin-top: 16px;
+}
+
+.export-controls {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.export-controls button {
+  padding: 6px 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background-color: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+
+.export-controls button:hover {
+  background-color: #2563eb;
 }
 
 </style>

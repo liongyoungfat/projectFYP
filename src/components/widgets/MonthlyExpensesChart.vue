@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
+import html2pdf from 'html2pdf.js'
 
 Chart.register(...registerables)
 
@@ -27,6 +28,7 @@ const startDate = ref<string>('')
 const endDate = ref<string>('')
 const showDatePicker = ref(false)
 const rawExpenseData = ref<ExpenseItem[]>([])
+const chartData = ref<MonthlyDataItem[]>([])
 
 const currentYear = new Date().getFullYear()
 const defaultStartDate = `${currentYear}-01-01`
@@ -35,6 +37,7 @@ const defaultEndDate = `${currentYear}-12-31`
 // Initialize with current year dates
 startDate.value = defaultStartDate
 endDate.value = defaultEndDate
+const threshold = ref<number | null>(null)
 
 const fetchExpenseData = async () => {
   try {
@@ -79,34 +82,47 @@ const processChartData = () => {
     .sort((a, b) => {
       return new Date(a.month_name).getTime() - new Date(b.month_name).getTime()
     })
-
+  chartData.value = monthlyData
   renderCharts(monthlyData)
 }
 
-const fetchChartData = async () => {
-  try {
-    const monthlyResponse = await axios.get(localhost + '/api/expenses/summary/monthly', {
-      params: { year: currentYear },
-    })
-    console.log(' monthlyResponse.data', monthlyResponse.data)
-    renderCharts(monthlyResponse.data)
-  } catch (error) {
-    console.error('Error fetching chart data:', error)
-  }
-}
+// const fetchChartData = async () => {
+//   try {
+//     const res = await axios.get(localhost + '/api/expenses/summary/monthly', {
+//       params: {
+//         year: selectedYear.value,
+//       },
+//     })
+//     monthlyExpenses.value = res.data
+//     renderCharts(res.data)
+//   } catch (error) {
+//     console.error('Fetch error:', error)
+//   }
+// }
+
+const monthlyExpenses = ref<Array<{ month_name: string; total_amount: number }>>([])
 
 const renderCharts = (monthlyData: MonthlyDataItem[]) => {
+  if (!monthlyData || monthlyData.length === 0) return
   if (!monthlyChart.value) return
 
   // Destroy existing chart instance if it exists
   if (chartInstance.value) {
     chartInstance.value.destroy()
   }
+  console.log('mon data', monthlyData)
 
   const title =
     monthlyData.length > 0
       ? `Monthly Expenses (${startDate.value} to ${endDate.value})`
       : `No Expense Data (${startDate.value} to ${endDate.value})`
+
+  const backgroundColors = monthlyData.map((item) => {
+    if (threshold.value && item.total_amount > threshold.value) {
+      return 'rgba(255, 99, 132, 0.8)' // red alert color
+    }
+    return 'rgba(75, 192, 192, 0.6)' // default bar color
+  })
 
   chartInstance.value = new Chart(monthlyChart.value, {
     type: 'bar',
@@ -114,9 +130,9 @@ const renderCharts = (monthlyData: MonthlyDataItem[]) => {
       labels: monthlyData.map((item) => item.month_name),
       datasets: [
         {
-          label: 'Monthly Expenses',
+          label: 'Monthly Expenses (RM)',
           data: monthlyData.map((item) => item.total_amount),
-          backgroundColor: '#4BC0C0',
+          backgroundColor: backgroundColors,
           borderColor: '#4BC0C0',
           borderWidth: 1,
         },
@@ -202,9 +218,35 @@ const resetDateFilter = () => {
   endDate.value = defaultEndDate
   fetchExpenseData()
 }
+
+const exportChart = () => {
+  const container = document.getElementById('expenses-chart-container')
+  if (!container) return
+
+  const now = new Date()
+  const timestamp =
+    now.toISOString().split('T')[0] + '_' + now.toTimeString().split(' ')[0].replace(/:/g, '-')
+  const filename = `MonthlyExpensesChart_${timestamp}.pdf`
+
+  const opt = {
+    margin: 0.3,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+  }
+
+  html2pdf().set(opt).from(container).save()
+}
 onMounted(() => {
   // fetchChartData()
   fetchExpenseData()
+})
+
+watch(threshold, () => {
+  if (chartData.value.length > 0) {
+    renderCharts(chartData.value)
+  }
 })
 </script>
 <template>
@@ -231,8 +273,15 @@ onMounted(() => {
         </div>
         <div class="current-range">{{ startDate }} to {{ endDate }}</div>
       </div>
+      <div class="threshold-input">
+        <label>Set Monthly Expense Threshold (RM):</label>
+        <input type="number" v-model="threshold" placeholder="e.g. 10000" />
+      </div>
+      <div class="export-controls">
+        <button @click="exportChart">Export as PDF</button>
+      </div>
     </div>
-    <div class="chart-wrapper">
+    <div class="chart-wrapper" id="expenses-chart-container">
       <canvas ref="monthlyChart"></canvas>
     </div>
   </div>
@@ -381,5 +430,21 @@ canvas {
   font-size: 0.9rem;
   color: #666;
   border: 1px solid #eee;
+}
+
+.threshold-input {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.threshold-input input {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  max-width: 160px;
 }
 </style>

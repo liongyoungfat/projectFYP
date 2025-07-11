@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
+import html2pdf from 'html2pdf.js'
 
 Chart.register(...registerables)
 
@@ -115,6 +116,26 @@ const renderCharts = (categoryData: CategoryDataItem[]) => {
   })
 }
 
+const exportExpensePieChart = () => {
+  const container = document.getElementById('expense-pie-chart-container')
+  if (!container) return
+
+  const now = new Date()
+  const timestamp =
+    now.toISOString().split('T')[0] + '_' + now.toTimeString().split(' ')[0].replace(/:/g, '-')
+  const filename = `ExpensePie_${timestamp}.pdf`
+
+  const opt = {
+    margin: 0.3,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+  }
+
+  html2pdf().set(opt).from(container).save()
+}
+
 onMounted(() => {
   fetchAvailableDates()
   fetchChartData()
@@ -143,7 +164,10 @@ watch([selectedYear, selectedMonth], fetchChartData)
         </select>
       </label>
     </div>
-    <div class="chart-wrapper">
+    <div class="export-controls">
+      <button @click="exportExpensePieChart">Export as PDF</button>
+    </div>
+    <div class="chart-wrapper" id="expense-pie-chart-container">
       <canvas ref="categoryChart"></canvas>
     </div>
     <div v-if="noDataMessage" class="no-data-message">
@@ -210,6 +234,34 @@ watch([selectedYear, selectedMonth], fetchChartData)
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 16px;
+}
+
+#expense-pie-chart-container {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  margin-top: 16px;
+}
+
+.export-controls {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.export-controls button {
+  padding: 6px 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background-color: #f97316;
+  color: white;
+  cursor: pointer;
+}
+
+.export-controls button:hover {
+  background-color: #ea580c;
 }
 
 </style>

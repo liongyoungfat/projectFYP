@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
+import html2pdf from 'html2pdf.js'
 
 Chart.register(...registerables)
 
@@ -283,75 +284,30 @@ function getMonthLabel(ym: string) {
   return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' })
 }
 
-// const fetchRevenueData = async () => {
-//   try {
-//     const res = await axios.get(localhost + '/api/revenues')
-//     revenueData.value = res.data
-//     console.log('revenueData.value', revenueData.value)
-//     renderProfitChart()
-//   } catch (err) {
-//     console.error('Failed to fetch revenue data:', err)
-//   }
-// }
+const exportProfitChart = () => {
+  const container = document.getElementById('profit-chart-container')
+  if (!container) return
 
-// const renderRevenueChart = () => {
-//   if (!revenueChart.value) return
-//   const monthlyTotals: Record<string, number> = {}
-//   revenueData.value.forEach((item) => {
-//     if (!item.dateTime) return
-//     const dateObj = new Date(item.dateTime)
-//     const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
-//     if (!monthlyTotals[month]) monthlyTotals[month] = 0
-//     monthlyTotals[month] += Number(item.amount)
-//   })
+  const now = new Date()
+  const timestamp =
+    now.toISOString().split('T')[0] + '_' + now.toTimeString().split(' ')[0].replace(/:/g, '-')
+  const filename = `ProfitTrend_${timestamp}.pdf`
 
-//   const ymList = Object.keys(monthlyTotals).sort()
-//   const labels = ymList.map((m) => getMonthLabel(m))
-//   const values = ymList.map((month) => monthlyTotals[month])
-//   console.log('labelsss', labels)
+  const opt = {
+    margin: 0.3,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+  }
 
-//   new Chart(revenueChart.value, {
-//     type: 'bar',
-//     data: {
-//       labels,
-//       datasets: [
-//         {
-//           label: 'Revenue (RM)',
-//           data: values,
-//           backgroundColor: '#36A2EB',
-//         },
-//       ],
-//     },
-//     options: {
-//       responsive: true,
-//       plugins: {
-//         title: {
-//           display: true,
-//           text: `Monthly Revenue Trend`,
-//         },
-//       },
-//       scales: {
-//         y: {
-//           beginAtZero: true,
-//           title: {
-//             display: true,
-//             text: 'Amount (RM)',
-//           },
-//         },
-//         x: {
-//           title: {
-//             display: true,
-//             text: 'Month',
-//           },
-//         },
-//       },
-//     },
-//   })
-// }
+  html2pdf().set(opt).from(container).save()
+}
 
 onMounted(() => {
   fetchRevenueData()
   fetchExpenseData()
+  renderProfitChart()
 })
 </script>
 <template>
@@ -384,8 +340,12 @@ onMounted(() => {
           </button>
         </div>
       </div>
+      <div class="export-controls">
+        <button @click="exportProfitChart">Export as PDF</button>
+      </div>
     </div>
-    <div class="chart-wrapper">
+
+    <div class="chart-wrapper" id="profit-chart-container">
       <canvas ref="profitChart" height="250"></canvas>
     </div>
   </div>
@@ -394,5 +354,33 @@ onMounted(() => {
 <style scoped>
 .widget {
   padding: 1rem;
+}
+
+#profit-chart-container {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  margin-top: 16px;
+}
+
+.export-controls {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.export-controls button {
+  padding: 6px 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background-color: #22c55e;
+  color: white;
+  cursor: pointer;
+}
+
+.export-controls button:hover {
+  background-color: #16a34a;
 }
 </style>

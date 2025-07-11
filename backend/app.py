@@ -245,6 +245,93 @@ def get_expenses():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/expenses/available-months', methods=['GET'])
+def get_available_months():
+    try:
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+
+        query = """
+        SELECT 
+            DISTINCT YEAR(date_time) AS year,
+            MONTH(date_time) AS month
+        FROM expenses
+        ORDER BY year DESC, month ASC
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        cursor.close()
+        con.close()
+
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/expenses/certain/period')
+def get_expenses_in_period():
+    try:
+        # Get required date parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if not start_date or not end_date:
+            return jsonify({"error": "Both start_date and end_date parameters are required"}), 400
+        
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True) 
+        query = """
+        SELECT 
+            id,
+            date_time AS dateTime,
+            type AS payment_method,
+            user_id,
+            category,
+            total AS amount
+        FROM expenses
+        WHERE date_time BETWEEN %s AND %s
+        """
+        
+        cursor.execute(query, (start_date, end_date))
+        expenses = cursor.fetchall()
+        cursor.close()
+        con.close()
+        return jsonify(expenses)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/revenues/certain/period')
+def get_revenues_in_period():
+    try:
+        # Get required date parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        print("date",start_date, end_date) 
+
+        if not start_date or not end_date:
+            return jsonify({"error": "Both start_date and end_date parameters are required"}), 400
+        
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True) 
+        query = """
+        SELECT 
+            id,
+            amount,
+            date_time AS dateTime
+        FROM revenues
+        WHERE date_time BETWEEN %s AND %s
+        """
+        
+        cursor.execute(query, (start_date, end_date))
+        revenues = cursor.fetchall()
+        cursor.close()
+        con.close()
+        return jsonify(revenues)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
 @app.route('/api/createExpenses', methods=['POST'])
 def create_expenses():
     data = request.get_json()

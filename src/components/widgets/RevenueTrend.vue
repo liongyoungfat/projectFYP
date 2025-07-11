@@ -19,11 +19,10 @@ const filteredRevenueData = ref<RevenueItem[]>([])
 
 const fetchRevenueData = async () => {
   try {
-    const res = await axios.get(localhost + '/api/revenues')
+    const res = await axios.get(localhost + 'api/revenues')
     revenueData.value = res.data
     filteredRevenueData.value = [...revenueData.value]
-    console.log('Fetched revenue data:', revenueData.value)
-    console.log('revenueData.value', revenueData.value)
+    // console.log('Fetched revenue data:', revenueData.value)
     renderRevenueChart()
   } catch (err) {
     console.error('Failed to fetch revenue data:', err)
@@ -75,7 +74,7 @@ const renderRevenueChart = () => {
   const ymList = Object.keys(monthlyTotals).sort()
   const labels = ymList.map((m) => getMonthLabel(m))
   const values = ymList.map((month) => monthlyTotals[month])
-  console.log('labelsss', labels)
+  // console.log('labelsss', labels)
 
   window.revenueChartInstance = new Chart(revenueChart.value, {
     type: 'bar',

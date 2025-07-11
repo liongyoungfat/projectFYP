@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
@@ -18,7 +18,6 @@ const revenueData = ref<RevenueItem[]>([])
 const expensesData = ref<ExpenseItem[]>([])
 
 const showWidgetDropdown = ref(false)
-
 
 interface ForecastReport {
   executive_summary: string
@@ -51,12 +50,31 @@ const totalExpenses = computed(() =>
 )
 const netProfit = computed(() => totalRevenue.value - totalExpenses.value)
 
+const fetchRevenueData = async () => {
+  try {
+    const res = await axios.get(localhost + 'api/revenues')
+    revenueData.value = res.data                                                      
+    // console.log('Fetched revenue data:', revenueData.value)
+  } catch (err) {
+    console.error('Failed to fetch revenue data:', err)
+  }
+}
+
+const fetchExpenseData = async () => {
+  try {
+    const res = await axios.get(localhost + 'api/expenses')
+    expensesData.value = res.data
+  } catch (err) {
+    console.error('Failed to fetch expense data:', err)
+  }
+}
+
 const generateFinancialReport = async () => {
   try {
     const fr = await axios.post(localhost + '/api/ai/generate/forecast')
-    console.log('fr', fr.data)
+    // console.log('fr', fr.data)
     forecastResponse.value = fr.data
-    console.log('fr.value', forecastResponse.value['executive_summary'])
+    // console.log('fr.value', forecastResponse.value['executive_summary'])
     showForecastModal.value = true
   } catch (err) {
     console.error('Failed to generate report', err)
@@ -78,6 +96,11 @@ const exportForecastPDF = () => {
     })
     .save()
 }
+
+onMounted(() => {
+  fetchRevenueData()
+  fetchExpenseData()
+})
 </script>
 
 <template>
@@ -116,10 +139,10 @@ const exportForecastPDF = () => {
     </div>
     <div class="widgets">
       <div class="widgets">
-        <RevenueTrend v-if="widgetVisible.revenue"/>
-        <ProfitTrend v-if="widgetVisible.profit"/>
-        <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart"/>
-        <ExpensePie v-if="widgetVisible.expenses"/>
+        <RevenueTrend v-if="widgetVisible.revenue" />
+        <ProfitTrend v-if="widgetVisible.profit" />
+        <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart" />
+        <ExpensePie v-if="widgetVisible.expenses" />
       </div>
     </div>
     <div v-if="showForecastModal" class="modal-overlay">

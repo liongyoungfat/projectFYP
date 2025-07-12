@@ -311,9 +311,9 @@ onMounted(() => {
 })
 </script>
 <template>
-  <div class="profit-trend-container">
+  <div class="profit-trend-container text-black">
     <div class="chart-header">
-      <h3>Net Profit Trend</h3>
+      <h3 class="text-8xl">Net Profit Trend</h3>
       <div class="date-range-controls">
         <button @click="showDatePicker = !showDatePicker" class="date-range-btn">
           <i class="fas fa-calendar-alt"></i>

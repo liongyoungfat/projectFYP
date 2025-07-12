@@ -44,6 +44,19 @@ genai.configure(api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk")
 # for m in models:
 #     print(m.name, m.supported_generation_methods)
 
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    if email == "test@example.com" and password == "123456":
+        return jsonify({"success": True, "token": "abc123"})
+    else:
+        return jsonify({"success": False}), 401
+
+        
 @app.route('/api/ai',methods=['POST'])
 def get_ai():
     client = genai.Client(api_key)

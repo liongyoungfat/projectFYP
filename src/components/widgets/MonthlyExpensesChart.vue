@@ -59,7 +59,6 @@ const processChartData = () => {
 
   rawExpenseData.value.forEach((expense) => {
     const date = new Date(expense.dateTime)
-    const month = date.toLocaleString('default', { month: 'short' })
     const year = date.getFullYear()
     const monthKey = `${year}-${date.getMonth() + 1}`
 
@@ -85,22 +84,6 @@ const processChartData = () => {
   chartData.value = monthlyData
   renderCharts(monthlyData)
 }
-
-// const fetchChartData = async () => {
-//   try {
-//     const res = await axios.get(localhost + '/api/expenses/summary/monthly', {
-//       params: {
-//         year: selectedYear.value,
-//       },
-//     })
-//     monthlyExpenses.value = res.data
-//     renderCharts(res.data)
-//   } catch (error) {
-//     console.error('Fetch error:', error)
-//   }
-// }
-
-const monthlyExpenses = ref<Array<{ month_name: string; total_amount: number }>>([])
 
 const renderCharts = (monthlyData: MonthlyDataItem[]) => {
   if (!monthlyData || monthlyData.length === 0) return
@@ -266,7 +249,7 @@ watch(threshold, () => {
             <label>Start Date:</label>
             <input type="date" v-model="startDate" />
           </div>
-          <div class="date-input-group">
+          <div class="date-input-group ">
             <label>End Date:</label>
             <input type="date" v-model="endDate" />
           </div>

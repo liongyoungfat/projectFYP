@@ -1,0 +1,10 @@
+diff a/README.md b/README.md	(rejected hunks)
+@@ -37,3 +37,8 @@
+ ```sh
+ npm run lint
+ ```
++
++### Database Setup
++
++Run the SQL script in `backend/schema.sql` on your MySQL server to add the
++`companies` table and extend the `users` table with role-based access fields.

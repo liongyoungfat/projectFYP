@@ -37,3 +37,8 @@ npm run build
 ```sh
 npm run lint
 ```
+
+### Database Setup
+
+Run the SQL script in `backend/schema.sql` on your MySQL server to add the
+`companies` table and extend the `users` table with role-based access fields.

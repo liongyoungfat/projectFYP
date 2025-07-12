@@ -16,10 +16,26 @@
         <router-link to="/tax" class="nav-link" active-class="active">
           Tax
         </router-link>
+        <router-link
+          v-if="isAdmin"
+          to="/staff"
+          class="nav-link"
+          active-class="active"
+        >
+          Manage Staff
+        </router-link>
       </nav>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const isAdmin = computed(() => userStore.role === 'admin')
+</script>
 
 <style lang="css" scoped>
 .sidebar {

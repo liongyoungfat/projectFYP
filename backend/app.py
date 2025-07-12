@@ -222,6 +222,41 @@ def get_users():
         return jsonify(users)  # Return data as JSON
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/updateUser', methods=['POST'])
+def update_user():
+    data = request.get_json()
+    try:
+        con = get_db_connection()
+        cursor = con.cursor()
+        cursor.execute("SELECT id FROM users WHERE id = %s", (data['id'],))
+        if not cursor.fetchone():
+            return jsonify({'error': 'User not found'}), 404
+        update_query = """
+            UPDATE users
+            SET role = %s,
+                status = %s,
+                company_id = %s
+            WHERE id = %s
+        """
+        params = (
+            data.get('role'),
+            data.get('status'),
+            data.get('company_id'),
+            data['id']
+        )
+        cursor.execute(update_query, params)
+        con.commit()
+        if cursor.rowcount > 0:
+            return jsonify({'message': 'User updated successfully'}), 200
+        else:
+            return jsonify({'error': 'No changes made'}), 400
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 500
+    finally:
+        if 'con' in locals() and con.is_connected():
+            cursor.close()
+            con.close()
     
 @app.route('/api/expenses')
 def get_expenses():

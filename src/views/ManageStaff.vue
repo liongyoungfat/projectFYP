@@ -16,6 +16,7 @@ const localhost = 'http://localhost:5000/'
 const fetchStaff = async () => {
   const res = await axios.get(localhost + 'api/users')
   staff.value = res.data as Staff[]
+  console.log('staff', staff.value)
 }
 
 onMounted(fetchStaff)
@@ -27,9 +28,9 @@ const saveUser = async (user: Staff) => {
 </script>
 
 <template>
-  <div>
+  <div class="container text-white bg-gray-800 p-4">
     <h1>Manage Staff</h1>
-    <table>
+    <table class="text-white">
       <thead>
         <tr>
           <th>ID</th>
@@ -41,23 +42,23 @@ const saveUser = async (user: Staff) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="u in staff" :key="u.id">
-          <td>{{ u.id }}</td>
-          <td>{{ u.username }}</td>
+        <tr v-for="user in staff" :key="user.id">
+          <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
           <td>
-            <select v-model="u.role">
+            <select v-model="user.role">
               <option value="admin">admin</option>
               <option value="staff">staff</option>
             </select>
           </td>
           <td>
-            <select v-model="u.status">
+            <select v-model="user.status">
               <option value="active">active</option>
               <option value="inactive">inactive</option>
             </select>
           </td>
-          <td>{{ u.company_id }}</td>
-          <td><button @click="saveUser(u)">Save</button></td>
+          <td>{{ user.company_id }}</td>
+          <td><button @click="saveUser(user)">Save</button></td>
         </tr>
       </tbody>
     </table>
@@ -65,6 +66,9 @@ const saveUser = async (user: Staff) => {
 </template>
 
 <style scoped>
+.container {
+  color: white !important;
+}
 table {
   width: 100%;
 }

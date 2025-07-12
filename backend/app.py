@@ -56,7 +56,7 @@ def login():
     else:
         return jsonify({"success": False}), 401
 
-        
+
 @app.route('/api/ai',methods=['POST'])
 def get_ai():
     client = genai.Client(api_key)
@@ -230,7 +230,9 @@ def get_users():
         con= get_db_connection()
         cursor = con.cursor()
         cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
+        columns = [col[0] for col in cursor.description]
+        users = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
         cursor.close()
         return jsonify(users)  # Return data as JSON
     except Exception as e:

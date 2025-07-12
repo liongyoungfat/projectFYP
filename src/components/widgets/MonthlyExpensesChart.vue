@@ -236,8 +236,12 @@ const exportChart = () => {
     jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
   }
 
-  html2pdf().set(opt).from(container).save()
+  // 🔧 Add slight delay to allow Chart.js to fully draw
+  setTimeout(() => {
+    html2pdf().set(opt).from(container).save()
+  }, 300)
 }
+
 onMounted(() => {
   // fetchChartData()
   fetchExpenseData()

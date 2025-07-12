@@ -7,7 +7,6 @@ import SideBar from './components/SideBar.vue'
     <div class="side-bar">
       <SideBar />
     </div>
-
     <main class="content-area">
       <router-view />
     </main>

@@ -51,11 +51,31 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
-    if email == "test@example.com" and password == "123456":
-        return jsonify({"success": True, "token": "abc123"})
-    else:
-        return jsonify({"success": False}), 401
+    try:
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s", (email, password))
+        user = cursor.fetchone()
+        cursor.close()
+        con.close()
 
+        if user:
+            return jsonify({
+                "success": True,
+                "token": "abc123",  # Replace with actual token if needed
+                "user": {
+                    "id": user['id'],
+                    "username": user['username'],
+                    "role": user['role'],
+                    "status": user['status'],
+                    "company_id": user['company_id']
+                }
+            })
+        else:
+            return jsonify({"success": False, "message": "Invalid credentials"}), 401
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/ai',methods=['POST'])
 def get_ai():

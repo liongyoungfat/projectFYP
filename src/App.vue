@@ -1,16 +1,15 @@
-<script setup lang="ts">
-import SideBar from './components/SideBar.vue'
-</script>
+<script setup lang="ts"></script>
 
 <template>
-  <div class="app-container">
-    <div class="side-bar">
-      <SideBar />
-    </div>
-    <main class="content-area">
-      <router-view />
-    </main>
+  <div>
+    <router-view />
   </div>
+
+  <!-- <div class="app-container">
+    <main class="content-area">
+      
+    </main>
+  </div> -->
 </template>
 
 <style scoped>

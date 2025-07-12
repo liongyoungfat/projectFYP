@@ -44,6 +44,73 @@ genai.configure(api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk")
 # for m in models:
 #     print(m.name, m.supported_generation_methods)
 
+@app.route('/api/companies', methods=['GET'])
+def get_companies():
+    try:
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("SELECT id, name FROM companies ORDER BY name ASC")
+        companies = cursor.fetchall()
+        cursor.close()
+        con.close()
+        return jsonify(companies)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/companies', methods=['POST'])
+def create_company():
+    data = request.json
+    name = data.get('name')
+    industry = data.get('industry')
+    address = data.get('address')
+
+    if not name or not industry or not address:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+
+    try:
+        con = get_db_connection()
+        cursor = con.cursor()
+        cursor.execute(
+            "INSERT INTO companies (name, industry, address) VALUES (%s, %s, %s)",
+            (name, industry, address)
+        )
+        company_id = cursor.lastrowid
+        con.commit()
+        cursor.close()
+        con.close()
+        return jsonify({"success": True, "company_id": company_id}), 201
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/register', methods=['POST'])
+def register_user():
+    data = request.json
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    role = data.get('role', 'staff')
+    company_id = data.get('company_id')
+
+    if not username or not email or not password:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+
+    try:
+        con = get_db_connection()
+        cursor = con.cursor()
+
+        # Auto-insert status = 'active'
+        cursor.execute(
+            "INSERT INTO users (username, email, password, role, status, company_id) VALUES (%s, %s, %s, %s, 'active', %s)",
+            (username, email, password, role, company_id)
+        )
+        con.commit()
+        cursor.close()
+        con.close()
+        return jsonify({"success": True}), 201
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -298,17 +365,14 @@ def get_expenses():
     try:
         con= get_db_connection()
         cursor = con.cursor(dictionary=True) 
+        company_id = request.args.get('company_id')
+
         query = """
-        SELECT 
-            id,
-            date_time AS dateTime,
-            type AS payment_method,
-            user_id,
-            category,
-            total AS amount
+        SELECT id, date_time AS dateTime, type AS payment_method, user_id, category, total AS amount
         FROM expenses
+        WHERE company_id = %s
         """
-        cursor.execute(query)
+        cursor.execute(query, (company_id,))
         expenses = cursor.fetchall()
         cursor.close()
         return jsonify(expenses)

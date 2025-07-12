@@ -42,113 +42,97 @@ const handleLogin = async () => {
     isLoading.value = false
   }
 }
+
+const goToRegister = () => {
+  router.push('/register')
+}
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-    <div class="max-w-md w-full space-y-6 bg-white p-8 rounded-lg shadow border">
-      <header class="flex items-center justify-between px-6 py-4 shadow-sm bg-white">
-        <div class="flex items-center gap-2 text-xl font-semibold text-blue-600">
-          <img src="@/assets/logo.png" class="w-6 h-6" alt="logo" />
-          FinancePro
-        </div>
-        <div class="flex items-center gap-4">
-          <RouterLink to="/login" class="text-gray-600 hover:text-blue-600">Login</RouterLink>
-          <RouterLink
-            to="/register"
-            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >Get Started</RouterLink
-          >
-        </div>
-      </header>
+  <div class="login-container">
+    <!-- Header -->
+    <div class="login-header">
+      <div
+        style="
+          background-color: #2563eb;
+          padding: 12px;
+          border-radius: 10px;
+          display: inline-block;
+          margin-bottom: 16px;
+        "
+      >
+        <svg
+          width="24"
+          height="24"
+          fill="none"
+          stroke="white"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          viewBox="0 0 24 24"
+        >
+          <path d="M3 3v18h18" />
+        </svg>
+      </div>
+      <h1>Welcome back</h1>
+      <p>Sign in to your account to access your financial dashboard</p>
+    </div>
 
-      <div class="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full space-y-8">
-          <div class="text-center">
-            <div
-              class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4"
+    <!-- Login Card -->
+    <div class="login-card">
+      <form @submit.prevent="handleLogin">
+        <div class="input-group">
+          <label>Email address</label>
+          <input type="email" v-model="email" placeholder="Enter your email" required />
+        </div>
+
+        <div class="input-group">
+          <label>Password</label>
+          <div style="position: relative">
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="password"
+              placeholder="Enter your password"
+              required
+              style="padding-right: 40px"
+            />
+            <button
+              type="button"
+              @click="togglePassword"
+              style="
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: #6b7280;
+              "
             >
-              <i class="ri-line-chart-line text-white text-2xl"></i>
-            </div>
-            <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
-            <p class="text-gray-600">Sign in to your account to access your financial dashboard</p>
-          </div>
-
-          <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-            <form @submit.prevent="handleLogin" class="space-y-6">
-              <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-2"
-                  >Email address</label
-                >
-                <input
-                  type="email"
-                  id="email"
-                  v-model="email"
-                  required
-                  class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
-                  placeholder="Enter your email"
-                />
-              </div>
-
-              <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2"
-                  >Password</label
-                >
-                <div class="relative">
-                  <input
-                    :type="showPassword ? 'text' : 'password'"
-                    id="password"
-                    v-model="password"
-                    required
-                    class="w-full px-4 py-2 border rounded-md pr-10 focus:outline-none focus:ring focus:border-blue-300"
-                    placeholder="Enter your password"
-                  />
-                  <button
-                    type="button"
-                    @click="togglePassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                  >
-                    <i :class="showPassword ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <label class="flex items-center">
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span class="ml-2 text-sm text-gray-700">Remember me</span>
-                </label>
-                <RouterLink to="/forgot-password" class="text-sm text-blue-600 hover:text-blue-500"
-                  >Forgot your password?</RouterLink
-                >
-              </div>
-
-              <button
-                type="submit"
-                :disabled="isLoading"
-                class="w-full flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                <i v-if="isLoading" class="ri-loader-4-line animate-spin mr-2"></i>
-                {{ isLoading ? 'Signing in...' : 'Sign in' }}
-              </button>
-            </form>
-
-            <div class="mt-6 text-center">
-              <p class="text-gray-600">
-                Don't have an account?
-                <RouterLink to="/register" class="text-blue-600 hover:text-blue-500 font-medium"
-                  >Sign up</RouterLink
-                >
-              </p>
-            </div>
+              <i :class="showPassword ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
+            </button>
           </div>
         </div>
+
+        <div class="options-row">
+          <label><input type="checkbox" /> Remember me</label>
+          <a href="#">Forgot your password?</a>
+        </div>
+
+        <button type="submit" class="login-button">Sign in</button>
+      </form>
+
+      <div class="login-footer">
+        Don't have an account?
+        <a href="#" @click.prevent="goToRegister">Sign up</a>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+body {
+  background-color: #f9fafb;
+}
+</style>

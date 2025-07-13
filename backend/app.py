@@ -313,15 +313,17 @@ def process_excel_file(file_path):
 
 @app.route('/api/users')
 def get_users():
-    try:
-        con= get_db_connection()
-        cursor = con.cursor()
-        cursor.execute("SELECT * FROM users")
-        columns = [col[0] for col in cursor.description]
-        users = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    company_id = request.args.get('company_id')  # <-- Get from query
+    if not company_id:
+        return jsonify({"error": "Missing company_id"}), 400
 
+    try:
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE company_id = %s", (company_id,))
+        users = cursor.fetchall()
         cursor.close()
-        return jsonify(users)  # Return data as JSON
+        return jsonify(users)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -367,10 +369,14 @@ def get_expenses():
         cursor = con.cursor(dictionary=True) 
         company_id = request.args.get('company_id')
 
+        if not company_id:
+            return jsonify({"error": "Missing company_id"}), 400
+        
         query = """
         SELECT id, date_time AS dateTime, type AS payment_method, user_id, category, total AS amount
         FROM expenses
         WHERE company_id = %s
+        ORDER BY date_time DESC
         """
         cursor.execute(query, (company_id,))
         expenses = cursor.fetchall()
@@ -474,15 +480,16 @@ def create_expenses():
         con= get_db_connection()
         cursor = con.cursor()
         query = """
-        INSERT INTO expenses (date_time,type,user_id,category,total)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO expenses (date_time, type, user_id, category, total, company_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """
         values = (
             data['dateTime'],
             data['payment_method'],
             data['user_id'],
             data['category'],
-            data['amount']
+            data['amount'],
+            data['company_id']
         )
         print('values',values)
         cursor.execute(query, values)
@@ -819,7 +826,7 @@ def download_template(doc_type):
     if doc_type == 'expenses':
         content = "date_time,type,category,total\n"
     elif doc_type == 'revenue':
-        content = "title,category,amount,date_time\n"
+        content = "title,description,category,amount,date_time\n"
     else:
         return jsonify({'error': 'Invalid template type'}), 400
     response = make_response(content)
@@ -845,13 +852,18 @@ def batch_upload_expenses():
         df = _read_uploaded_table(file)
     except Exception as e:
         return jsonify({'error': f'Failed to read file: {e}'}), 400
+    company_id = request.form.get('company_id')
+    if not company_id:
+        return jsonify({'error': 'Missing company_id'}), 400
+    user_id = request.form.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Missing user_id'}), 400
 
     required = ['date_time', 'type', 'category', 'total']
     for col in required:
         if col not in df.columns:
             return jsonify({'error': f'Missing required column {col}'}), 400
 
-    # Convert date_time to MySQL DATETIME format
     try:
         df['date_time'] = pd.to_datetime(df['date_time'], errors='raise')
         df['date_time'] = df['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -864,9 +876,10 @@ def batch_upload_expenses():
             (
                 row['date_time'],
                 row['type'],
-                int(row.get('user_id', 1)),
+                int(user_id),
                 row['category'],
                 float(row['total']),
+                int(company_id)
             )
         )
 
@@ -875,8 +888,8 @@ def batch_upload_expenses():
         cursor = con.cursor()
         cursor.executemany(
             """
-            INSERT INTO expenses (date_time, type, user_id, category, total)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO expenses (date_time, type, user_id, category, total, company_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
             records,
         )
@@ -893,10 +906,15 @@ def batch_upload_expenses():
 
 @app.route('/api/batchUploadRevenue', methods=['POST'])
 def batch_upload_revenue():
-    """Batch insert revenues from uploaded file."""
     file = request.files.get('file')
     if not file:
         return jsonify({'error': 'No file provided'}), 400
+
+    # Get company_id from FormData
+    company_id = request.form.get('company_id')
+    if not company_id:
+        return jsonify({'error': 'Missing company_id'}), 400
+
     try:
         df = _read_uploaded_table(file)
     except Exception as e:
@@ -905,46 +923,63 @@ def batch_upload_revenue():
     required = ['title', 'category', 'amount', 'date_time']
     for col in required:
         if col not in df.columns:
-            return jsonify({'error': f'Missing required column {col}'}), 400
+            return jsonify({'error': f'Missing required column: {col}'}), 400
+
+    # Ensure valid date format
+    try:
+        df['date_time'] = pd.to_datetime(df['date_time'], errors='raise')
+        df['date_time'] = df['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        return jsonify({'error': f'Date parsing failed: {e}'}), 400
 
     records = []
     for _, row in df.iterrows():
-        records.append(
-            (
-                row['title'],
-                row.get('description', ''),
-                row['category'],
-                float(row['amount']),
-                row.get('reference', ''),
-                row.get('file', ''),
-                row['date_time'],
+        try:
+            records.append(
+                (
+                    row['title'],
+                    row.get('description') or '',  # allow null
+                    row['category'],
+                    float(row['amount']),
+                    row.get('reference') or '',
+                    row.get('file') or '',
+                    row['date_time'],
+                    int(company_id)
+                )
             )
-        )
+        except Exception as e:
+            print(f"Skipping invalid row: {row} — Error: {e}")
+            continue
 
     try:
         con = get_db_connection()
         cursor = con.cursor()
         cursor.executemany(
             """
-            INSERT INTO revenues (title, description, category, amount, reference, file, date_time)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO revenues 
+            (title, description, category, amount, reference, file, date_time, company_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            records,
+            records
         )
         con.commit()
         return jsonify({'message': f'{len(records)} revenues uploaded'}), 201
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
     finally:
-        if 'con' in locals() and con.is_connected():
+        if con and con.is_connected():
             cursor.close()
             con.close()
+
 
 @app.route('/api/revenues', methods=['GET'])
 def get_revenues():
     try:
         con = get_db_connection()
         cursor = con.cursor(dictionary=True)
+
+        company_id = request.args.get('company_id')
+
         query = """
         SELECT 
             id,
@@ -956,8 +991,10 @@ def get_revenues():
             file,
             date_time AS dateTime
         FROM revenues
+        WHERE company_id = %s
+        ORDER BY date_time DESC
         """
-        cursor.execute(query)
+        cursor.execute(query, (company_id,))
         revenues = cursor.fetchall()
         cursor.close()
         return jsonify(revenues)
@@ -972,8 +1009,8 @@ def create_revenue():
         con = get_db_connection()
         cursor = con.cursor()
         query = """
-        INSERT INTO revenues (title, description, category, amount, reference, file, date_time)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO revenues (title, description, category, amount, reference, file, date_time, company_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             data['title'],
@@ -982,7 +1019,8 @@ def create_revenue():
             data['amount'],
             data.get('reference', ''),
             data.get('file', ''),
-            data['dateTime']
+            data['dateTime'],
+            data['company_id']  
         )
         cursor.execute(query, values)
         con.commit()

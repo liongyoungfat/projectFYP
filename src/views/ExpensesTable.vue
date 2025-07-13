@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import axios, { AxiosError } from 'axios'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id
+const userId = userStore.user_id
 
 interface Expense {
   id: number
@@ -9,6 +14,7 @@ interface Expense {
   user_id: number
   category: string
   amount: number
+  company_id?: number
 }
 
 const expenses = ref<Expense[]>([])
@@ -25,9 +31,10 @@ const defaultExpense = {
   id: 0,
   dateTime: getCurrentDateTimeString(),
   payment_method: 'Online banking',
-  user_id: 1,
+  user_id: userId,
   category: 'Meals',
   amount: 0,
+  company_id: companyId,
 }
 
 function getCurrentDateTimeString() {
@@ -59,7 +66,9 @@ const localhost = 'http://localhost:5000/'
 
 const getExpenses = async () => {
   try {
-    const res = await axios.get(localhost + 'api/expenses')
+    const res = await axios.get(localhost + 'api/expenses', {
+      params: { company_id: companyId },
+    })
     expenses.value = res.data as Expense[]
     console.log('expenses val', expenses.value)
   } catch (error) {
@@ -91,14 +100,19 @@ const handleBatchUpload = async (event: Event) => {
   if (!file) return
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('company_id', String(companyId!))
+  formData.append('user_id', String(userId!))
+  console.log('formData', formData)
+
   try {
     await axios.post(localhost + 'api/batchUploadExpenses', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     getExpenses()
+    alert('Batch upload successful!')
     successMessage.value = 'Batch upload successful!'
   } catch (err) {
-    console.log ('err in line 101',err)
+    console.log('err in line 101', err)
     errorMessage.value = 'Batch upload failed'
   }
 }
@@ -218,9 +232,11 @@ const submitExpense = async () => {
       user_id: newExpense.value.user_id,
       category: newExpense.value.category,
       amount: parseFloat(newExpense.value.amount.toFixed(2)),
+      company_id: newExpense.value.company_id || companyId,
     })
     expenses.value = [response.data, ...expenses.value]
     resetForm()
+    alert('Expense saved!')
     getExpenses()
   } catch (error) {
     errorMessage.value = 'Failed to save expense. Please try again.'
@@ -233,7 +249,7 @@ const submitExpense = async () => {
 const editExpenses = async (expense: Expense) => {
   const date = new Date(expense.dateTime)
   const formattedDateTime = date.toISOString().slice(0, 16)
-  newExpense.value = { ...expense, dateTime: formattedDateTime }
+  newExpense.value = { ...expense, dateTime: formattedDateTime, company_id: companyId }
   showEditModal.value = true
 }
 
@@ -247,6 +263,7 @@ const updateExpense = async () => {
     })
     console.log('res', res)
     showEditModal.value = false
+    alert('Update Successfully!!')
     getExpenses()
   } catch (error) {
     console.log('newexp', newExpense.value)
@@ -286,205 +303,203 @@ onMounted(async () => {
 
 <template>
   <main class="main-content">
-      <div class="header-row">
-        <h1 class="page-title">Expense Management</h1>
-        <div class="button-group">
-          <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
-          <input type="file" id="batchFile" hidden @change="handleBatchUpload" />
-            <button @click="triggerBatchFileInput" class="new-expense-btn">Batch Upload</button>
-          <!-- <button @click="document.getElementById('batchFile')?.click()" class="new-expense-btn">Batch Upload</button> -->
-          <button @click="showModal = true" class="new-expense-btn">+ New Expense</button>
-        </div>
+    <div class="header-row">
+      <h1 class="page-title">Expense Management</h1>
+      <div class="button-group">
+        <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
+        <input type="file" id="batchFile" hidden @change="handleBatchUpload" />
+        <button @click="triggerBatchFileInput" class="new-expense-btn">Batch Upload</button>
+        <!-- <button @click="document.getElementById('batchFile')?.click()" class="new-expense-btn">Batch Upload</button> -->
+        <button @click="showModal = true" class="new-expense-btn">+ New Expense</button>
       </div>
-      <div v-if="expenses.length" class="expenses-container">
-        <div class="expense-table">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Date</th>
-                <th>Payment Method</th>
-                <th>User</th>
-                <th>Category</th>
-                <th>Amount (RM)</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="expense in expenses" :key="expense.id" class="">
-                <td>{{ expense.id }}</td>
-                <td>{{ expense.dateTime }}</td>
-                <td>{{ expense.payment_method }}</td>
-                <td>{{ expense.user_id }}</td>
-                <td>{{ expense.category }}</td>
-                <td>{{ expense.amount.toFixed(2) }}</td>
-                <td>
-                  <button @click="editExpenses(expense)">Edit</button>
-                  <button @click="deleteExpense(expense.id)" class="cancel-btn">Delete</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    </div>
+    <div v-if="expenses.length" class="expenses-container">
+      <div class="expense-table">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Payment Method</th>
+              <th>User</th>
+              <th>Category</th>
+              <th>Amount (RM)</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="expense in expenses" :key="expense.id" class="">
+              <td>{{ expense.id }}</td>
+              <td>{{ expense.dateTime }}</td>
+              <td>{{ expense.payment_method }}</td>
+              <td>{{ expense.user_id }}</td>
+              <td>{{ expense.category }}</td>
+              <td>{{ expense.amount.toFixed(2) }}</td>
+              <td>
+                <button @click="editExpenses(expense)">Edit</button>
+                <button @click="deleteExpense(expense.id)" class="cancel-btn">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div v-else class="loading">Loading expenses...</div>
+    </div>
+    <div v-else class="loading">Loading expenses...</div>
 
-      <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
-        <div class="modal-content">
-          <h2>Create New Expense</h2>
-          <div class="content-container">
-            <div class="upload-section">
-              <div
-                class="upload-area"
-                :class="{ dragover: isDragging }"
-                @dragover.prevent="handleDragOver"
-                @dragleave="handleDragLeave"
-                @drop.prevent="handleDrop"
+    <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+      <div class="modal-content">
+        <h2>Create New Expense</h2>
+        <div class="content-container">
+          <div class="upload-section">
+            <div
+              class="upload-area"
+              :class="{ dragover: isDragging }"
+              @dragover.prevent="handleDragOver"
+              @dragleave="handleDragLeave"
+              @drop.prevent="handleDrop"
+            >
+              <i class="fas fa-file-upload upload-icon"></i>
+              <h3>Upload Receipt</h3>
+              <p>Drag & drop your receipt PDF here or click to browse files</p>
+              <input
+                type="file"
+                id="fileInput"
+                accept=".pdf,.jpg,.jpeg,.png"
+                hidden
+                @change="handleFileUpload"
+              />
+              <button class="upload-btn" @click="triggerFileInput">
+                <i class="fas fa-cloud-upload-alt"></i> Choose File
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <form @submit.prevent="submitExpense">
+          <div class="form-group">
+            <label>Date and Time:</label>
+            <input type="datetime-local" v-model="newExpense.dateTime" required />
+          </div>
+
+          <div class="form-group">
+            <label>Payment Method:</label>
+            <select v-model="newExpense.payment_method" required>
+              <option
+                v-for="method in paymentMethods"
+                :value="method.toLowerCase()"
+                :key="method.toLowerCase()"
               >
-                <i class="fas fa-file-upload upload-icon"></i>
-                <h3>Upload Receipt</h3>
-                <p>Drag & drop your receipt PDF here or click to browse files</p>
-                <input
-                  type="file"
-                  id="fileInput"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  hidden
-                  @change="handleFileUpload"
-                />
-                <button class="upload-btn" @click="triggerFileInput">
-                  <i class="fas fa-cloud-upload-alt"></i> Choose File
-                </button>
-              </div>
+                {{ method }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Category:</label>
+            <select v-model="newExpense.category" required>
+              <option v-for="cat in categories" :value="cat" :key="cat">
+                {{ cat }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Amount (RM):</label>
+            <input
+              type="number"
+              v-model.number="newExpense.amount"
+              min="0.01"
+              step="0.01"
+              required
+            />
+          </div>
+
+          <div class="form-actions">
+            <button type="button" @click="showModal = false" class="cancel-btn">Cancel</button>
+            <button type="submit" :disabled="!formValid || isLoading" class="submit-btn">
+              {{ isLoading ? 'Saving...' : 'Create Expense' }}
+            </button>
+          </div>
+
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showModal = false">
+      <div class="modal-content">
+        <h2>Update Expense</h2>
+        <form @submit.prevent="updateExpense">
+          <div class="form-group">
+            <label>Date and Time:</label>
+            {{ newExpense.dateTime }}
+            <input type="datetime-local" v-model="newExpense.dateTime" required />
+          </div>
+
+          <div class="form-group">
+            <label>Payment Method:</label>
+            <select v-model="newExpense.payment_method" required>
+              <option
+                v-for="method in paymentMethods"
+                :value="method.toLowerCase()"
+                :key="method.toLowerCase()"
+              >
+                {{ method }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Category:</label>
+            <select v-model="newExpense.category" required>
+              <option v-for="cat in categories" :value="cat" :key="cat">
+                {{ cat }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Amount (RM):</label>
+            <input
+              type="number"
+              v-model.number="newExpense.amount"
+              min="0.01"
+              step="0.01"
+              required
+            />
+          </div>
+
+          <div class="receipt-preview" v-if="receiptPreview">
+            <p>Receipt Preview:</p>
+            <img :src="receiptPreview" alt="Receipt preview" />
+          </div>
+
+          <div v-if="ocrProcessing" class="ocr-status">
+            <div class="processing-animation">
+              <div class="spinner"></div>
+              <span>Processing receipt and extracting data...</span>
             </div>
           </div>
 
-          <form @submit.prevent="submitExpense">
-            <div class="form-group">
-              <label>Date and Time:</label>
-              <input type="datetime-local" v-model="newExpense.dateTime" required />
-            </div>
+          <div class="form-actions">
+            <button type="button" @click="showEditModal = false" class="cancel-btn">Cancel</button>
+            <button type="submit" :disabled="!formValid || isLoading" class="submit-btn">
+              {{ isLoading ? 'Saving...' : 'Edit Expense' }}
+            </button>
+          </div>
 
-            <div class="form-group">
-              <label>Payment Method:</label>
-              <select v-model="newExpense.payment_method" required>
-                <option
-                  v-for="method in paymentMethods"
-                  :value="method.toLowerCase()"
-                  :key="method.toLowerCase()"
-                >
-                  {{ method }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Category:</label>
-              <select v-model="newExpense.category" required>
-                <option v-for="cat in categories" :value="cat" :key="cat">
-                  {{ cat }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Amount (RM):</label>
-              <input
-                type="number"
-                v-model.number="newExpense.amount"
-                min="0.01"
-                step="0.01"
-                required
-              />
-            </div>
-
-            <div class="form-actions">
-              <button type="button" @click="showModal = false" class="cancel-btn">Cancel</button>
-              <button type="submit" :disabled="!formValid || isLoading" class="submit-btn">
-                {{ isLoading ? 'Saving...' : 'Create Expense' }}
-              </button>
-            </div>
-
-            <div v-if="errorMessage" class="error-message">
-              {{ errorMessage }}
-            </div>
-          </form>
-        </div>
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+          <div v-if="successMessage" class="ocr-status">
+            <i class="fas fa-check-circle"></i> {{ successMessage }}
+          </div>
+        </form>
       </div>
-
-      <div v-if="showEditModal" class="modal-overlay" @click.self="showModal = false">
-        <div class="modal-content">
-          <h2>Update Expense</h2>
-          <form @submit.prevent="updateExpense">
-            <div class="form-group">
-              <label>Date and Time:</label>
-              {{ newExpense.dateTime }}
-              <input type="datetime-local" v-model="newExpense.dateTime" required />
-            </div>
-
-            <div class="form-group">
-              <label>Payment Method:</label>
-              <select v-model="newExpense.payment_method" required>
-                <option
-                  v-for="method in paymentMethods"
-                  :value="method.toLowerCase()"
-                  :key="method.toLowerCase()"
-                >
-                  {{ method }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Category:</label>
-              <select v-model="newExpense.category" required>
-                <option v-for="cat in categories" :value="cat" :key="cat">
-                  {{ cat }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Amount (RM):</label>
-              <input
-                type="number"
-                v-model.number="newExpense.amount"
-                min="0.01"
-                step="0.01"
-                required
-              />
-            </div>
-
-            <div class="receipt-preview" v-if="receiptPreview">
-              <p>Receipt Preview:</p>
-              <img :src="receiptPreview" alt="Receipt preview" />
-            </div>
-
-            <div v-if="ocrProcessing" class="ocr-status">
-              <div class="processing-animation">
-                <div class="spinner"></div>
-                <span>Processing receipt and extracting data...</span>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" @click="showEditModal = false" class="cancel-btn">
-                Cancel
-              </button>
-              <button type="submit" :disabled="!formValid || isLoading" class="submit-btn">
-                {{ isLoading ? 'Saving...' : 'Edit Expense' }}
-              </button>
-            </div>
-
-            <div v-if="errorMessage" class="error-message">
-              {{ errorMessage }}
-            </div>
-            <div v-if="successMessage" class="ocr-status">
-              <i class="fas fa-check-circle"></i> {{ successMessage }}
-            </div>
-          </form>
-        </div>
-      </div>
-    </main>
+    </div>
+  </main>
 </template>
 
 <style scoped>

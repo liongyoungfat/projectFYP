@@ -25,12 +25,17 @@ const handleLogin = async () => {
 
     if (res.data.success) {
       userStore.setUser({
+        user_id: res.data.user.id,
         role: res.data.user.role,
+        company_id: res.data.user.company_id,
         token: res.data.token,
       })
 
       localStorage.setItem('userRole', res.data.user.role)
-      localStorage.setItem('userToken', res.data.token)
+      localStorage.setItem('userCompanyId', res.data.user.company_id)
+      localStorage.setItem('userId', res.data.user.id) // optional but helpful
+      console.log('Login successful:', res.data.user)
+
       router.push('/dashboard')
     } else {
       alert('Invalid credentials')

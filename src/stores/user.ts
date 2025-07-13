@@ -2,19 +2,36 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useUserStore = defineStore('user', () => {
-  const role = ref('')
-  const token = ref('')
+  const role = ref(localStorage.getItem('userRole') || '')
+  const token = ref(localStorage.getItem('userToken') || '')
+  const company_id = ref(Number(localStorage.getItem('userCompanyId')) || null)
+  const user_id = ref(Number(localStorage.getItem('userId')) || null)
 
-  const setUser = (userData: { role: string; token: string }) => {
+  const setUser = (userData: {
+    role: string
+    token: string
+    company_id: number
+    user_id: number
+  }) => {
     role.value = userData.role
     token.value = userData.token
+    company_id.value = userData.company_id
+    user_id.value = userData.user_id
+
+    // Also persist to localStorage
+    localStorage.setItem('userRole', userData.role)
+    localStorage.setItem('userToken', userData.token)
+    localStorage.setItem('userCompanyId', String(userData.company_id))
+    localStorage.setItem('userId', String(userData.user_id))
   }
 
   const logout = () => {
     role.value = ''
     token.value = ''
+    company_id.value = null
+    user_id.value = null
     localStorage.clear()
   }
 
-  return { role, token, setUser, logout }
+  return { role, token, company_id, user_id, setUser, logout }
 })

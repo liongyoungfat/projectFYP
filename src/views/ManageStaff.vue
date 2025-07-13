@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id
+const userId = userStore.user_id
 
 interface Staff {
   id: number
@@ -14,7 +19,9 @@ const staff = ref<Staff[]>([])
 const localhost = 'http://localhost:5000/'
 
 const fetchStaff = async () => {
-  const res = await axios.get(localhost + 'api/users')
+  const res = await axios.get(localhost + 'api/users', {
+    params: { company_id: companyId },
+  })
   staff.value = res.data as Staff[]
   console.log('staff', staff.value)
 }

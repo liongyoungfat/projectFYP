@@ -7,6 +7,12 @@ import RevenueTrend from '@/components/widgets/RevenueTrend.vue'
 import ExpensePie from '@/components/widgets/ExpensePie.vue'
 import ProfitTrend from '@/components/widgets/ProfitTrend.vue'
 import MonthlyExpensesChart from '@/components/widgets/MonthlyExpensesChart.vue'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id
+const userId = userStore.user_id
+const role = userStore.role
 
 Chart.register(...registerables)
 

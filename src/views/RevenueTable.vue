@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { onMounted, ref, computed } from 'vue'
+import { useUserStore } from '@/stores/user'
 
 const localhost = 'http://localhost:5000/'
 const showAdd = ref(false)
@@ -50,6 +51,8 @@ function getCurrentDateTimeString() {
 }
 
 const newRevenue = ref({ ...defaultRevenue })
+const userStore = useUserStore()
+const companyId = userStore.company_id
 
 const downloadTemplate = () => {
   window.open(localhost + 'api/template/revenue', '_blank')
@@ -61,6 +64,9 @@ const handleBatchUpload = async (event: Event) => {
   if (!file) return
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('company_id', String(companyId))
+  console.log('fDT', formData)
+
   try {
     await axios.post(localhost + 'api/batchUploadRevenue', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -68,13 +74,15 @@ const handleBatchUpload = async (event: Event) => {
     getRevenues()
     successMessage.value = 'Batch upload successful!'
   } catch (err) {
-    errorMessage.value = 'Batch upload failed'
+    errorMessage.value = `Batch upload failed, ${err}`
   }
 }
 
 const getRevenues = async () => {
   try {
-    const response = await axios.get(localhost + 'api/revenues')
+    const response = await axios.get(localhost + 'api/revenues', {
+      params: { company_id: companyId },
+    })
     revenues.value = response.data
   } catch (error) {
     console.error('Error fetching revenues:', error)
@@ -178,7 +186,8 @@ const handleSubmit = async () => {
 const addRevenue = async () => {
   console.log('addrevenue')
   try {
-    const response = await axios.post(localhost + 'api/createRevenue', newRevenue.value)
+    const payload = { ...newRevenue.value, company_id: companyId }
+    const response = await axios.post(localhost + 'api/createRevenue', payload)
     console.log(response.data)
     revenues.value.push(response.data)
     showAdd.value = false

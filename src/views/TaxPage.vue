@@ -2,6 +2,10 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id || localStorage.getItem('userCompanyId')
 
 const localhost = 'http://localhost:5000/'
 const selectedYear = ref(new Date().getFullYear())
@@ -19,8 +23,8 @@ const years = computed(() => {
 const fetchData = async () => {
   try {
     const [expRes, revRes] = await Promise.all([
-      axios.get(localhost + 'api/expenses'),
-      axios.get(localhost + 'api/revenues'),
+      axios.get(localhost + 'api/expenses', { params: { company_id: companyId } }),
+      axios.get(localhost + 'api/revenues', { params: { company_id: companyId } }),
     ])
     expenses.value = expRes.data
     revenues.value = revRes.data
@@ -33,15 +37,11 @@ onMounted(fetchData)
 watch(selectedYear, fetchData)
 
 const filteredExpenses = computed(() =>
-  expenses.value.filter(
-    (e) => new Date(e.dateTime).getFullYear() === selectedYear.value,
-  ),
+  expenses.value.filter((e) => new Date(e.dateTime).getFullYear() === selectedYear.value),
 )
 
 const filteredRevenues = computed(() =>
-  revenues.value.filter(
-    (r) => new Date(r.dateTime).getFullYear() === selectedYear.value,
-  ),
+  revenues.value.filter((r) => new Date(r.dateTime).getFullYear() === selectedYear.value),
 )
 
 const totalExpenses = computed(() =>
@@ -55,17 +55,13 @@ const totalRevenues = computed(() =>
 const profit = computed(() => totalRevenues.value - totalExpenses.value)
 
 const band1 = computed(() => Math.min(Math.max(profit.value, 0), 150000))
-const band2 = computed(() =>
-  Math.min(Math.max(profit.value - 150000, 0), 450000),
-)
+const band2 = computed(() => Math.min(Math.max(profit.value - 150000, 0), 450000))
 const band3 = computed(() => Math.max(profit.value - 600000, 0))
 
 const taxBand1 = computed(() => band1.value * 0.15)
 const taxBand2 = computed(() => band2.value * 0.17)
 const taxBand3 = computed(() => band3.value * 0.24)
-const totalTax = computed(
-  () => taxBand1.value + taxBand2.value + taxBand3.value,
-)
+const totalTax = computed(() => taxBand1.value + taxBand2.value + taxBand3.value)
 
 const exportTaxPDF = () => {
   const el = document.getElementById('tax-report-content')
@@ -111,35 +107,33 @@ const exportTaxPDF = () => {
           </tr>
         </thead>
         <tbody>
-        <tr>
-          <td>First RM150,000</td>
-          <td>15%</td>
-          <td>{{ band1.toFixed(2) }}</td>
-          <td>{{ taxBand1.toFixed(2) }}</td>
-        </tr>
-        <tr>
-          <td>Next RM450,000</td>
-          <td>17%</td>
-          <td>{{ band2.toFixed(2) }}</td>
-          <td>{{ taxBand2.toFixed(2) }}</td>
-        </tr>
-        <tr>
-          <td>Above RM600,000</td>
-          <td>24%</td>
-          <td>{{ band3.toFixed(2) }}</td>
-          <td>{{ taxBand3.toFixed(2) }}</td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr>
-          <th colspan="3">Total Tax</th>
-          <th>{{ totalTax.toFixed(2) }}</th>
-        </tr>
-      </tfoot>
+          <tr>
+            <td>First RM150,000</td>
+            <td>15%</td>
+            <td>{{ band1.toFixed(2) }}</td>
+            <td>{{ taxBand1.toFixed(2) }}</td>
+          </tr>
+          <tr>
+            <td>Next RM450,000</td>
+            <td>17%</td>
+            <td>{{ band2.toFixed(2) }}</td>
+            <td>{{ taxBand2.toFixed(2) }}</td>
+          </tr>
+          <tr>
+            <td>Above RM600,000</td>
+            <td>24%</td>
+            <td>{{ band3.toFixed(2) }}</td>
+            <td>{{ taxBand3.toFixed(2) }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="3">Total Tax</th>
+            <th>{{ totalTax.toFixed(2) }}</th>
+          </tr>
+        </tfoot>
       </table>
-      <p class="note">
-        Rates may change; always check official LHDN site.
-      </p>
+      <p class="note">Rates may change; always check official LHDN site.</p>
     </div>
   </div>
 </template>

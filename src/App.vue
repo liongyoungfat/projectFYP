@@ -4,12 +4,6 @@
   <div>
     <router-view />
   </div>
-
-  <!-- <div class="app-container">
-    <main class="content-area">
-      
-    </main>
-  </div> -->
 </template>
 
 <style scoped>

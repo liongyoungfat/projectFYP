@@ -26,11 +26,11 @@ const routes = [
     path: '/',
     component: AuthLayout,
     children: [
-      { path: 'dashboard', name: 'FinancialDashboard', component: Dashboard },
-      { path: 'expenses', name: 'ExpensesTable', component: Expenses },
-      { path: 'revenue', name: 'RevenueTable', component: Revenue },
-      { path: 'tax', name: 'TaxPage', component: TaxPage },
-      { path: 'staff', name: 'ManageStaff', component: ManageStaff },
+      { path: 'dashboard', name: 'FinancialDashboard', component: Dashboard, meta: { title: 'Financial Dashboard' }},
+      { path: 'expenses', name: 'ExpensesTable', component: Expenses, meta: { title: 'Expenses Table' } },
+      { path: 'revenue', name: 'RevenueTable', component: Revenue, meta: { title: 'Revenue Table' } },
+      { path: 'tax', name: 'TaxPage', component: TaxPage, meta: { title: 'Tax Management' } },
+      { path: 'staff', name: 'ManageStaff', component: ManageStaff, meta: { title: 'Staff Management' } },
     ],
   },
 ]

@@ -250,7 +250,6 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h2>Revenue Table</h2>
     <div class="button-group">
       <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
       <input type="file" id="batchRevenue" hidden @change="handleBatchUpload" />

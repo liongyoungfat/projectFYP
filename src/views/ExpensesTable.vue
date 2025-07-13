@@ -304,7 +304,7 @@ onMounted(async () => {
 <template>
   <main class="main-content">
     <div class="header-row">
-      <h1 class="page-title">Expense Management</h1>
+      <h1 class="page-title"></h1>
       <div class="button-group">
         <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
         <input type="file" id="batchFile" hidden @change="handleBatchUpload" />

@@ -3,6 +3,10 @@ import { ref, onMounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id
 
 Chart.register(...registerables)
 
@@ -21,7 +25,7 @@ const filteredRevenueData = ref<RevenueItem[]>([])
 
 const fetchRevenueData = async () => {
   try {
-    const res = await axios.get(localhost + 'api/revenues')
+    const res = await axios.get(localhost + 'api/revenues', { params: { company_id: companyId } })
     revenueData.value = res.data
     filteredRevenueData.value = [...revenueData.value]
     // console.log('Fetched revenue data:', revenueData.value)
@@ -236,5 +240,4 @@ onMounted(fetchRevenueData)
 .export-controls button:hover {
   background-color: #2563eb;
 }
-
 </style>

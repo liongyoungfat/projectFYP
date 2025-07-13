@@ -11,8 +11,6 @@ import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 const companyId = userStore.company_id
-const userId = userStore.user_id
-const role = userStore.role
 
 Chart.register(...registerables)
 
@@ -58,8 +56,8 @@ const netProfit = computed(() => totalRevenue.value - totalExpenses.value)
 
 const fetchRevenueData = async () => {
   try {
-    const res = await axios.get(localhost + 'api/revenues')
-    revenueData.value = res.data                                                      
+    const res = await axios.get(localhost + 'api/revenues', { params: { company_id: companyId } })
+    revenueData.value = res.data
     // console.log('Fetched revenue data:', revenueData.value)
   } catch (err) {
     console.error('Failed to fetch revenue data:', err)
@@ -68,7 +66,7 @@ const fetchRevenueData = async () => {
 
 const fetchExpenseData = async () => {
   try {
-    const res = await axios.get(localhost + 'api/expenses')
+    const res = await axios.get(localhost + 'api/expenses', { params: { company_id: companyId } })
     expensesData.value = res.data
   } catch (err) {
     console.error('Failed to fetch expense data:', err)

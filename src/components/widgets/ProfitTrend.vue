@@ -3,6 +3,10 @@ import { ref, onMounted, computed } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id
 
 Chart.register(...registerables)
 
@@ -53,6 +57,9 @@ const fetchExpenseData = async () => {
     if (isFilterApplied.value) {
       params.start_date = startDate.value
       params.end_date = endDate.value
+      if (companyId !== null && companyId !== undefined) {
+        params.company_id = String(companyId)
+      }
     }
     console.log('params', params)
     const res = await axios.get(localhost + 'api/expenses/certain/period', { params })
@@ -70,6 +77,9 @@ const fetchRevenueData = async () => {
     if (isFilterApplied.value) {
       params.start_date = startDate.value
       params.end_date = endDate.value
+      if (companyId !== null && companyId !== undefined) {
+        params.company_id = String(companyId)
+      }
     }
     console.log('params1', params)
     const res = await axios.get(localhost + 'api/revenues/certain/period', { params })

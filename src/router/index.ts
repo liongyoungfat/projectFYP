@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 
+import HomePage from '../views/HomePage.vue'
 import Login from '@/views/UserLogin.vue'
 import Register from '@/views/UserRegister.vue'
 import Dashboard from '@/views/FinancialDashboard.vue'
@@ -16,7 +17,7 @@ const routes = [
     path: '/',
     component: PublicLayout,
     children: [
-      { path: '', name: 'Login', component: Login },
+      { path: '', name: 'Home', component: HomePage },
       { path: 'login', name: 'LoginPage', component: Login },
       { path: 'register', name: 'Register', component: Register },
     ],
@@ -39,14 +40,14 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
+// router.beforeEach((to, from, next) => {
+//   const token = localStorage.getItem('token')
 
-  if (to.path !== '/' && to.path !== '/login' && !token) {
-    next('/') // 🔒 Redirect to login if not authenticated
-  } else {
-    next() // ✅ Allow navigation
-  }
-})
+//   if (to.path !== '/' && to.path !== '/login' && !token) {
+//     next('/') // 🔒 Redirect to login if not authenticated
+//   } else {
+//     next() // ✅ Allow navigation
+//   }
+// })
 
 export default router

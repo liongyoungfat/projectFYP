@@ -416,6 +416,10 @@ def get_expenses_in_period():
         # Get required date parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
+        company_id = request.args.get('company_id')
+
+        if not company_id:
+            return jsonify({"error": "Missing company_id"}), 400
         
         if not start_date or not end_date:
             return jsonify({"error": "Both start_date and end_date parameters are required"}), 400
@@ -431,10 +435,11 @@ def get_expenses_in_period():
             category,
             total AS amount
         FROM expenses
-        WHERE date_time BETWEEN %s AND %s
+        WHERE company_id = %s
+        AND date_time BETWEEN %s AND %s
         """
         
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, (company_id, start_date, end_date))
         expenses = cursor.fetchall()
         cursor.close()
         con.close()
@@ -448,6 +453,10 @@ def get_revenues_in_period():
         # Get required date parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
+        company_id = request.args.get('company_id')
+
+        if not company_id:
+            return jsonify({"error": "Missing company_id"}), 400
         print("date",start_date, end_date) 
 
         if not start_date or not end_date:
@@ -461,10 +470,11 @@ def get_revenues_in_period():
             amount,
             date_time AS dateTime
         FROM revenues
-        WHERE date_time BETWEEN %s AND %s
+        WHERE company_id = %s
+        AND date_time BETWEEN %s AND %s
         """
         
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, (company_id, start_date, end_date)) 
         revenues = cursor.fetchall()
         cursor.close()
         con.close()
@@ -578,9 +588,14 @@ def delete_expenses():
 @app.route('/api/expenses/summary/category')
 def expense_summary_by_category():
     try:
-        now = datetime.now()  # Renamed variable
+        now = datetime.now()
         year = request.args.get('year', type=int, default=now.year)
         month = request.args.get('month', type=int, default=now.month)
+        company_id = request.args.get('company_id')
+
+        if not company_id:
+            return jsonify({"error": "Missing company_id"}), 400
+
         con = get_db_connection()
         cursor = con.cursor(dictionary=True)
         query = """
@@ -590,15 +605,17 @@ def expense_summary_by_category():
         FROM expenses
         WHERE 
             YEAR(date_time) = %s AND 
-            MONTH(date_time) = %s
+            MONTH(date_time) = %s AND
+            company_id = %s
         GROUP BY category
         """
-        cursor.execute(query, (year, month))
+        cursor.execute(query, (year, month, company_id))
         result = cursor.fetchall()
         cursor.close()
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 MONTH_ABBR = list(calendar.month_abbr)[1:]
 @app.route('/api/expenses/summary/monthly')

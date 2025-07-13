@@ -3,6 +3,10 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id
 
 Chart.register(...registerables)
 
@@ -39,7 +43,9 @@ const months = [
 let pieChartInstance: Chart | null = null
 
 const fetchAvailableDates = async () => {
-  const res = await axios.get(localhost + 'api/expenses/available-months')
+  const res = await axios.get(localhost + 'api/expenses/available-months', {
+    params: { company_id: companyId },
+  })
   availableDates.value = res.data
 }
 
@@ -55,7 +61,7 @@ const fetchChartData = async () => {
   try {
     // Category data for pie chart
     const categoryResponse = await axios.get(localhost + '/api/expenses/summary/category', {
-      params: { year: selectedYear.value, month: selectedMonth.value },
+      params: { year: selectedYear.value, month: selectedMonth.value, company_id: companyId },
     })
     const data = categoryResponse.data
 
@@ -263,5 +269,4 @@ watch([selectedYear, selectedMonth], fetchChartData)
 .export-controls button:hover {
   background-color: #ea580c;
 }
-
 </style>

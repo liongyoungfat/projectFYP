@@ -3,6 +3,10 @@ import { ref, onMounted, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const companyId = userStore.company_id
 
 Chart.register(...registerables)
 
@@ -45,6 +49,7 @@ const fetchExpenseData = async () => {
       params: {
         start_date: startDate.value,
         end_date: endDate.value,
+        company_id: companyId,
       },
     })
     rawExpenseData.value = response.data
@@ -249,7 +254,7 @@ watch(threshold, () => {
             <label>Start Date:</label>
             <input type="date" v-model="startDate" />
           </div>
-          <div class="date-input-group ">
+          <div class="date-input-group">
             <label>End Date:</label>
             <input type="date" v-model="endDate" />
           </div>

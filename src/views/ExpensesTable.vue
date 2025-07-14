@@ -301,10 +301,9 @@ const formatDate = (dateStr: string) => {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
-  });
+    second: '2-digit',
+  })
 }
-
 
 onMounted(async () => {
   try {
@@ -319,7 +318,7 @@ onMounted(async () => {
 <template>
   <main class="main-content">
     <div class="header-row">
-      <h2 class="header-title">📋 Expenses Management</h2>
+      <h2 class="header-title">💸📋Expenses Management</h2>
       <div class="button-group">
         <button @click="downloadTemplate" class="header-btn">Download Template</button>
         <input type="file" id="batchFile" hidden @change="handleBatchUpload" />
@@ -390,7 +389,7 @@ onMounted(async () => {
                 hidden
                 @change="handleFileUpload"
               />
-              
+
               <button class="upload-btn" @click="triggerFileInput">
                 <i class="fas fa-cloud-upload-alt"></i> Choose File
               </button>
@@ -685,69 +684,60 @@ button:hover {
   text-align: center;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .expense-table {
-    padding: 20px;
-  }
-
-  .expense-table th,
-  .expense-table td {
-    padding: 10px;
-    font-size: 12px;
-  }
-
-  button {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
+.main-content {
+  padding: 20px;
 }
 
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 24px;
+  background-color: #f8fafc; /* match tax page background */
+  border-radius: 12px; /* same rounded corners */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); /* softer shadow */
   margin-bottom: 24px;
-  padding: 12px 20px;
-  background-color: #f7f9fb;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .header-title {
   font-size: 20px;
   font-weight: 600;
+  color: #1e293b; /* match tax title text color */
   margin: 0;
-  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .button-group {
   display: flex;
+  align-items: center;
   gap: 12px;
 }
 
 .header-btn {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 4px;
-  background-color: #cddce0;
-  color: #2c3e50;
+  padding: 8px 16px;
   font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background-color: #e2e8f0;
+  color: #1e293b;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .header-btn:hover {
-  background-color: #adb2b9;
+  background-color: #cbd5e1;
 }
 
 .primary-btn {
-  background-color: #3498db;
+  background-color: #2563eb;
   color: white;
 }
 
 .primary-btn:hover {
-  background-color: #2980b9;
+  background-color: #1d4ed8;
 }
 
 .modal-overlay {
@@ -855,7 +845,9 @@ select:focus {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -876,6 +868,23 @@ select:focus {
   font-size: 16px;
 }
 
+/* Responsive */
+@media (max-width: 768px) {
+  .expense-table {
+    padding: 20px;
+  }
+
+  .expense-table th,
+  .expense-table td {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
 
 @media (max-width: 480px) {
   .modal-content {

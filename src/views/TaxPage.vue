@@ -81,23 +81,30 @@ const exportTaxPDF = () => {
 </script>
 
 <template>
-  <div class="tax-page">
-    <h1>Tax Calculation</h1>
-    <button @click="exportTaxPDF" class="export-btn no-print">Export PDF</button>
-    <label>
-      Year:
-      <select v-model="selectedYear">
-        <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-      </select>
-    </label>
-    <div id="tax-report-content">
+  <div class="tax-container">
+    <div class="page-header">
+      <div class="title-section">
+        <h1 class="page-title">💵💵 🧾💸 Tax Calculation</h1>
+      </div>
+      <div class="action-section no-print">
+        <label class="year-select-label">
+          Year:
+          <select v-model="selectedYear" class="year-select">
+            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </label>
+        <button @click="exportTaxPDF" class="export-btn">Export PDF</button>
+      </div>
+    </div>
+
+    <div id="tax-report-content" class="table-container">
       <div class="summary">
         <p>Total Revenue: RM {{ totalRevenues.toFixed(2) }}</p>
         <p>Total Expenses: RM {{ totalExpenses.toFixed(2) }}</p>
         <p>Profit: RM {{ profit.toFixed(2) }}</p>
       </div>
 
-      <table class="tax-breakdown">
+      <table class="table">
         <thead>
           <tr>
             <th>Band</th>
@@ -133,46 +140,141 @@ const exportTaxPDF = () => {
           </tr>
         </tfoot>
       </table>
+
       <p class="note">Rates may change; always check official LHDN site.</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.tax-page {
-  color: #ecf0f1;
+.tax-container {
+  padding: 20px;
+  color: #2c3e50;
 }
-.summary {
-  margin: 1rem 0;
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.tax-breakdown {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fafafa;
-  color: #333;
+
+.title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
-.tax-breakdown th,
-.tax-breakdown td {
-  border: 1px solid #e0e0e0;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
+
+.title-icon {
+  width: 28px;
+  height: 28px;
 }
-.tax-breakdown th {
-  background: #e3f2fd;
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
 }
-.note {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: #ccc;
+
+.action-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.year-select-label {
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.year-select {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: white;
+  font-size: 0.95rem;
 }
 
 .export-btn {
-  background: #4a6fa5;
+  background: #2563eb;
   color: white;
-  padding: 10px 20px;
+  padding: 0.45rem 1rem;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  margin-bottom: 1rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.export-btn:hover {
+  background: #1d4ed8;
+}
+
+.year-label {
+  font-weight: 600;
+  color: #34495e;
+}
+
+.year-select {
+  margin-left: 10px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.new-expense-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.new-expense-btn:hover {
+  background: #2980b9;
+}
+
+.table-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.summary {
+  margin-bottom: 20px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.note {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #7f8c8d;
 }
 </style>

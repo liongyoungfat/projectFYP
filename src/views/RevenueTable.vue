@@ -261,7 +261,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <div class="main-content">
     <div class="header-row">
       <h2 class="header-title">💹 Revenue Management</h2>
       <div class="button-group">
@@ -530,51 +530,60 @@ table {
   color: #7f8c8d;
 }
 
+.main-content {
+  padding: 20px;
+}
+
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 24px;
+  background-color: #f8fafc; /* match tax page background */
+  border-radius: 12px; /* same rounded corners */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); /* softer shadow */
   margin-bottom: 24px;
-  padding: 12px 20px;
-  background-color: #f7f9fb;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .header-title {
   font-size: 20px;
   font-weight: 600;
+  color: #1e293b; /* match tax title text color */
   margin: 0;
-  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .button-group {
   display: flex;
+  align-items: center;
   gap: 12px;
 }
 
 .header-btn {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 4px;
-  background-color: #cddce0;
-  color: #2c3e50;
+  padding: 8px 16px;
   font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background-color: #e2e8f0;
+  color: #1e293b;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .header-btn:hover {
-  background-color: #adb2b9;
+  background-color: #cbd5e1;
 }
 
 .primary-btn {
-  background-color: #3498db;
+  background-color: #2563eb; 
   color: white;
 }
 
 .primary-btn:hover {
-  background-color: #2980b9;
+  background-color: #1d4ed8;
 }
 
 .modal-overlay {

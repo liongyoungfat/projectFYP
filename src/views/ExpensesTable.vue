@@ -808,7 +808,7 @@ select:focus {
 }
 
 .cancel-btn {
-  transition: scale(1.1);
+  transform: scale(1.1);
 }
 
 .submit-btn {
@@ -827,7 +827,7 @@ select:focus {
 }
 
 .submit-btn:hover {
-  transition: scale(1.2) ease;
+  transform: scale(1.2) ease;
 }
 
 .error-message {

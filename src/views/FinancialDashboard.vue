@@ -21,6 +21,7 @@ const forecastResponse = ref<ForecastReport | null>(null)
 const revenueData = ref<RevenueItem[]>([])
 const expensesData = ref<ExpenseItem[]>([])
 
+const isGenerating = ref(false)
 const showWidgetDropdown = ref(false)
 
 interface ForecastReport {
@@ -75,6 +76,7 @@ const fetchExpenseData = async () => {
 
 const generateFinancialReport = async () => {
   try {
+    isGenerating.value = true
     const fr = await axios.post(localhost + '/api/ai/generate/forecast')
     // console.log('fr', fr.data)
     forecastResponse.value = fr.data
@@ -82,6 +84,8 @@ const generateFinancialReport = async () => {
     showForecastModal.value = true
   } catch (err) {
     console.error('Failed to generate report', err)
+  } finally {
+    isGenerating.value = false
   }
 }
 
@@ -110,43 +114,40 @@ onMounted(() => {
 <template>
   <div class="dashboard-container">
     <div class="chart-header">
-      <h2>Financial Dashboard</h2>
-      <button @click="generateFinancialReport" class="report-btn">
-        <i class="fas fa-file-alt"></i> Generate Financial Report
-      </button>
-
-      <div class="toggle-dropdown">
-        <button @click="showWidgetDropdown = !showWidgetDropdown">Select Widgets ▾</button>
-        <div v-if="showWidgetDropdown" class="dropdown-menu">
-          <label> <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend </label>
-          <label> <input type="checkbox" v-model="widgetVisible.expenses" /> Expense Pie </label>
-          <label> <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend </label>
-          <label>
-            <input type="checkbox" v-model="widgetVisible.monthlyExpensesChart" /> Monthly Expenses
-          </label>
+      <div class="chart-header-left">📊 Financial Dashboard</div>
+      <div class="chart-header-right">
+        <div class="toggle-dropdown">
+          <button @click="showWidgetDropdown = !showWidgetDropdown">
+            Select Widgets {{ showWidgetDropdown ? '▴' : '▾' }}
+          </button>
+          <div v-if="showWidgetDropdown" class="dropdown-menu">
+            <label> <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend </label>
+            <label> <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend </label>
+            <label>
+              <input type="checkbox" v-model="widgetVisible.monthlyExpensesChart" /> Monthly
+              Expenses
+            </label>
+            <label> <input type="checkbox" v-model="widgetVisible.expenses" /> Expense Pie </label>
+          </div>
         </div>
+        <button @click="generateFinancialReport" class="report-btn" :disabled="isGenerating">
+          <i class="fas fa-file-alt"></i>
+          {{ isGenerating ? 'Generating...' : 'Generate Financial Report' }}
+        </button>
       </div>
     </div>
     <div class="summary-row">
       <div class="summary-card">
         <h4>Total Revenue</h4>
-        <p>{{ totalRevenue.toFixed(2) }}</p>
+        <p class="summary-green">{{ totalRevenue.toFixed(2) }}</p>
       </div>
       <div class="summary-card">
         <h4>Total Expenses</h4>
-        <p>{{ totalExpenses.toFixed(2) }}</p>
+        <p class="summary-red">{{ totalExpenses.toFixed(2) }}</p>
       </div>
       <div class="summary-card">
         <h4>Net Profit</h4>
-        <p>{{ netProfit.toFixed(2) }}</p>
-      </div>
-    </div>
-    <div class="widgets">
-      <div class="widgets">
-        <RevenueTrend v-if="widgetVisible.revenue" />
-        <ProfitTrend v-if="widgetVisible.profit" />
-        <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart" />
-        <ExpensePie v-if="widgetVisible.expenses" />
+        <p :class="netProfit >= 0 ? 'summary-green' : 'summary-red'">{{ netProfit.toFixed(2) }}</p>
       </div>
     </div>
     <div v-if="showForecastModal" class="modal-overlay">
@@ -204,26 +205,124 @@ onMounted(() => {
         <button @click="showForecastModal = false" class="close-btn no-print">Close</button>
       </div>
     </div>
+    <div class="full-width-widget">
+      <div class="widgets">
+        <div class="widgets">
+          <RevenueTrend v-if="widgetVisible.revenue" />
+          <ProfitTrend v-if="widgetVisible.profit" />
+          <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart" />
+          <ExpensePie v-if="widgetVisible.expenses" />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .dashboard-container {
-  background: #191c20;
-  min-height: 100vh;
+  max-height: 80vh;
   padding: 28px 16px 32px 16px;
 }
-
 .chart-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  align-items: center;
+  background-color: #f7f9fb;
+  padding: 16px 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-header-left {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+}
+
+.chart-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+/* Report Button */
+.report-btn {
+  padding: 10px 18px;
+  background-color: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.5s ease;
+}
+
+.report-btn:hover {
+  background-color: #2980b9;
+  transform: scale(1.05);
+}
+
+.report-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle-dropdown {
+  position: relative;
+  display: inline-block;
+  transition: background-color 0.2s ease transform 0.5s ease;
+}
+
+.toggle-dropdown > button {
+  padding: 8px 14px;
+  background-color: #d1dfe6;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease transform 0.2s ease;
+}
+
+.toggle-dropdown > button:hover {
+  background-color: #b7c9d4;
+  transform: scale(1.1);
+}
+
+.toggle-dropdown > .dropdown-menu {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 10px 14px;
+  z-index: 99;
+  min-width: 200px;
+}
+
+.dropdown-menu label {
+  display: block;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdown-menu label:hover {
+  background-color: #f4f7fb;
+  border-radius: 4px;
+  padding-left: 4px;
 }
 
 h2 {
-  color: #f9fafb;
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 0;
@@ -251,54 +350,43 @@ h2 {
   font-weight: 600;
 }
 
-.widgets {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(370px, 1fr));
-  gap: 24px;
-  margin-bottom: 36px;
+.full-width-widget {
+  grid-column: 1 / -1; /* take full row in grid */
+  display: block;
+  width: 100%;
+}
+
+.full-width-widget > * {
+  width: 100%;
 }
 
 .widgets {
-  display: flex;
-  flex-direction: column;
   gap: 32px;
   margin-bottom: 36px;
+  padding: 10px 0;
 }
 
 .widgets > * {
-  width: 100%;
-  background: #f4fafe;
-  border: none;
-  border-radius: 20px;
-  box-shadow: 0 4px 14px #0001;
-  padding: 18px 22px 15px 22px;
-  transition: box-shadow 0.12s;
-  min-height: 380px; /* or whatever min height works for your charts */
+  background: linear-gradient(to bottom, #ffffff, #f4fafe);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 20px 24px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.widgets > *:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
 .widget canvas,
 .widget > canvas {
   width: 100% !important;
-  height: 340px !important; /* or adjust to taste */
   max-width: 100%;
-  display: block;
   margin: 0 auto;
-}
-
-.chart-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.chart-wrapper {
-  flex: 1;
-  min-width: 300px;
-  height: 400px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 20px;
 }
 
 .dashboard-chart {
@@ -307,79 +395,6 @@ h2 {
   box-shadow: 0 4px 14px #0001;
   padding: 20px 30px 16px 30px;
   margin-bottom: 30px;
-}
-
-/* Report Button */
-.report-btn {
-  background: linear-gradient(to right, #4a6fa5, #2c3e50);
-  color: white;
-  padding: 12px 25px;
-  border: none;
-  border-radius: 30px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-right: 18px;
-  box-shadow: 0 4px 15px rgba(76, 110, 176, 0.18);
-}
-
-.report-btn:hover {
-  transform: translateY(-2px) scale(1.1);
-  background: linear-gradient(to right, #35598f, #181e29);
-}
-
-.toggle-dropdown {
-  position: relative;
-}
-
-.toggle-dropdown button {
-  background: #23262f;
-  color: #f9fafb;
-  font-weight: 600;
-  padding: 7px 18px;
-  border-radius: 8px;
-  border: none;
-  box-shadow: 0 1px 8px #0002;
-  cursor: pointer;
-  transition: background 0.18s;
-}
-
-.toggle-dropdown button:hover {
-  background: #333643;
-}
-
-.dropdown-menu {
-  position: absolute;
-  left: 0;
-  top: 110%;
-  min-width: 200px;
-  background: #22252c;
-  border-radius: 10px;
-  box-shadow: 0 4px 22px #0005;
-  padding: 16px 14px 10px 14px;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.dropdown-menu label {
-  color: #f9fafb;
-  font-weight: 500;
-  font-size: 1.07em;
-  cursor: pointer;
-  transition: color 0.12s;
-  margin-bottom: 2px;
-  display: flex;
-  align-items: center;
-}
-
-.dropdown-menu input[type='checkbox'] {
-  margin-right: 7px;
-  accent-color: #36a2eb;
 }
 
 .close-btn {
@@ -503,6 +518,22 @@ h2 {
   break-before: page;
 }
 
+.export-btn {
+  background-color: #2563eb;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+}
+
+.export-btn:hover {
+  background-color: #1d4ed8;
+  transform: scale(1.2);
+}
+
 /* Hide .no-print elements in print/export */
 @media print {
   .no-print {
@@ -513,5 +544,15 @@ h2 {
 /* For html2pdf.js to honor it, you can also use: */
 .no-pdf {
   display: none !important;
+}
+
+/* Summary Card Colors */
+.summary-green {
+  color: #2ecc71;
+  font-weight: bold;
+}
+.summary-red {
+  color: #e74c3c;
+  font-weight: bold;
 }
 </style>

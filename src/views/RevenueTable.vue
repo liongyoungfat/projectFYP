@@ -239,6 +239,18 @@ const deleteRevenue = async (id: number) => {
   }
 }
 
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleString('en-GB', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
 onMounted(async () => {
   try {
     getRevenues()
@@ -250,43 +262,57 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div class="button-group">
-      <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
-      <input type="file" id="batchRevenue" hidden @change="handleBatchUpload" />
-      <button @click="triggerBatchUpload" class="new-expense-btn">Batch Upload</button>
-      <button @click="showAdd = !showAdd" class="new-expense-btn">
-        {{ showAdd ? 'Cancel' : 'Add Revenue' }}
-      </button>
+    <div class="header-row">
+      <h2 class="header-title">💹 Revenue Management</h2>
+      <div class="button-group">
+        <button @click="downloadTemplate" class="header-btn">Download Template</button>
+        <input type="file" id="batchRevenue" hidden @change="handleBatchUpload" />
+        <button @click="triggerBatchUpload" class="header-btn">Batch Upload</button>
+        <button @click="showAdd = !showAdd" class="header-btn primary-btn">
+          {{ showAdd ? 'Cancel' : '+ New Revenue' }}
+        </button>
+      </div>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Description</th>
-          <th>Category</th>
-          <th>Amount</th>
-          <th>Reference</th>
-          <th>File</th>
-          <th>Date Time</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="rev in revenues" :key="rev.id">
-          <td>{{ rev.title }}</td>
-          <td>{{ rev.description }}</td>
-          <td>{{ rev.category }}</td>
-          <td>{{ rev.amount }}</td>
-          <td>{{ rev.reference }}</td>
-          <td>{{ rev.file }}</td>
-          <td>{{ rev.dateTime }}</td>
-          <td>
-            <button @click="openEditModal(rev)" class="btn-primary">Edit</button>
-            <button @click="deleteRevenue(rev.id)" class="btn-danger">Delete</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+
+    <div class="expenses-container">
+      <div v-if="revenues.length" class="expenses-container">
+        <div class="expenses-card">
+          <h3 class="expenses-title">Revenues Table</h3>
+          <div class="table-container">
+            <table class="expenses-table fixed-table">
+              <thead>
+                <tr>
+                  <th style="width: 16.66%">Date Time</th>
+                  <th style="width: 16.66%">Title</th>
+                  <th style="width: 16.66%">Description</th>
+                  <th style="width: 16.66%">Category</th>
+                  <th style="width: 16.66%">Amount</th>
+                  <th style="width: 16.66%">Action</th>
+                </tr>
+              </thead>
+            </table>
+            <div class="table-scroll-body">
+              <table class="expenses-table">
+                <tbody>
+                  <tr v-for="rev in revenues" :key="rev.id">
+                    <td style="width: 16.66%">{{ formatDate(rev.dateTime) }}</td>
+                    <td style="width: 16.66%">{{ rev.title }}</td>
+                    <td style="width: 16.66%">{{ rev.description }}</td>
+                    <td style="width: 16.66%">{{ rev.category }}</td>
+                    <td style="width: 16.66%">{{ rev.amount }}</td>
+                    <td style="width: 16.66%">
+                      <button @click="openEditModal(rev)" class="edit-button">Edit</button>
+                      <button @click="deleteRevenue(rev.id)" class="delete-button">Delete</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="loading">Loading revenues...</div>
+    </div>
   </div>
 
   <div v-if="showAdd" class="modal-overlay" @click.self="showAdd = false">
@@ -297,7 +323,6 @@ onMounted(async () => {
           <div class="upload-area">
             <i class="fas fa-file-upload upload-icon"></i>
             <h3>Upload Receipt</h3>
-            <p>Drag & drop your receipt PDF here or click to browse files</p>
             <input
               type="file"
               id="fileInput"
@@ -306,7 +331,7 @@ onMounted(async () => {
               @change="handleFileUpload"
             />
             <button class="upload-btn" @click="triggerFileInput">
-              <i class="fas fa-cloud-upload-alt"></i> Choose File
+              Choose File
             </button>
           </div>
         </div>
@@ -359,19 +384,138 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
-.page-title {
+.header-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
   color: #2c3e50;
-  margin-bottom: 30px;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+}
+
+.header-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 4px;
+  background-color: #cddce0;
+  color: #2c3e50;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.header-btn:hover {
+  background-color: #adb2b9;
+}
+
+.primary-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.primary-btn:hover {
+  background-color: #2980b9;
 }
 
 .expenses-container {
-  overflow-y: scroll;
-  height: 500px;
+  width: 100%;
+  max-height: 78vh;
+  background-color: #f9fafb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f6f9fc;
 }
 
-.expense-table {
-  overflow-x: auto;
-  width: max-content;
+.table-container {
+  width: 100%;
+  height: 80%;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.expenses-card {
+  width: 90%;
+  background-color: #fff;
+  max-height: 80%;
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.expenses-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  align-items: center;
+  text-align: center;
+}
+
+.table-scroll-body {
+  max-height: 430px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.scrollable-tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+thead,
+.scrollable-tbody {
+  width: 100%;
+}
+
+thead tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.expenses-table th,
+.expenses-table td {
+  padding: 12px 16px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.expenses-table th {
+  background-color: #f4f6f8;
+  font-weight: 600;
+  color: #333;
+}
+
+.edit-button,
+.delete-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.edit-button {
+  background-color: #eaeaea;
+  color: #333;
+  margin-right: 6px;
+}
+
+.delete-button {
+  background-color: #e74c3c;
+  color: white;
 }
 
 table {
@@ -380,27 +524,6 @@ table {
   background: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-
-th,
-td {
-  padding: 15px;
-  text-align: left;
-  border-bottom: 1px solid #ecf0f1;
-}
-
-th {
-  background: #3498db;
-  color: white;
-}
-
-td {
-  color: lightblue;
-}
-
-tr:hover {
-  background-color: #f5f6fa;
-}
-
 .loading {
   padding: 20px;
   text-align: center;
@@ -411,21 +534,47 @@ tr:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
+  padding: 12px 20px;
+  background-color: #f7f9fb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.new-expense-btn {
-  background: #3498db;
-  color: white;
+.header-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+}
+
+.header-btn {
+  padding: 10px 18px;
   border: none;
-  padding: 12px 24px;
   border-radius: 4px;
+  background-color: #cddce0;
+  color: #2c3e50;
+  font-size: 14px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background-color 0.2s ease;
 }
 
-.new-expense-btn:hover {
-  background: #2980b9;
+.header-btn:hover {
+  background-color: #adb2b9;
+}
+
+.primary-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.primary-btn:hover {
+  background-color: #2980b9;
 }
 
 .modal-overlay {
@@ -519,6 +668,17 @@ select:focus {
 .button-group {
   display: flex;
   gap: 10px;
+}
+
+.fixed-table {
+  table-layout: fixed;
+}
+.fixed-table th,
+.fixed-table td {
+  width: 16.66%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 480px) {

@@ -181,3 +181,34 @@ body {
   border-radius: 6px;
   font-size: 14px;
 }
+
+
+.upload-btn {
+  background-color: #4f46e5; /* Indigo */
+  color: #ffffff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.upload-btn:hover {
+  background-color: #4338ca; /* Darker Indigo */
+  transform: translateY(-1px);
+}
+
+.upload-btn:active {
+  background-color: #3730a3; /* Even darker on click */
+  transform: scale(0.98);
+}
+
+.upload-btn i {
+  font-size: 16px;
+}

@@ -291,6 +291,21 @@ const deleteExpense = async (expenseId: number) => {
     alert('Delete failed: ' + axiosError.message)
   }
 }
+
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleString('en-GB', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+
 onMounted(async () => {
   try {
     getExpenses()
@@ -304,47 +319,55 @@ onMounted(async () => {
 <template>
   <main class="main-content">
     <div class="header-row">
-      <h1 class="page-title"></h1>
+      <h2 class="header-title">📋 Expenses Management</h2>
       <div class="button-group">
-        <button @click="downloadTemplate" class="new-expense-btn">Download Template</button>
+        <button @click="downloadTemplate" class="header-btn">Download Template</button>
         <input type="file" id="batchFile" hidden @change="handleBatchUpload" />
-        <button @click="triggerBatchFileInput" class="new-expense-btn">Batch Upload</button>
-        <!-- <button @click="document.getElementById('batchFile')?.click()" class="new-expense-btn">Batch Upload</button> -->
-        <button @click="showModal = true" class="new-expense-btn">+ New Expense</button>
+        <button @click="triggerBatchFileInput" class="header-btn">Batch Upload</button>
+        <button @click="showModal = true" class="header-btn primary-btn">+ New Expense</button>
       </div>
     </div>
-    <div v-if="expenses.length" class="expenses-container">
-      <div class="expense-table">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Date</th>
-              <th>Payment Method</th>
-              <th>User</th>
-              <th>Category</th>
-              <th>Amount (RM)</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="expense in expenses" :key="expense.id" class="">
-              <td>{{ expense.id }}</td>
-              <td>{{ expense.dateTime }}</td>
-              <td>{{ expense.payment_method }}</td>
-              <td>{{ expense.user_id }}</td>
-              <td>{{ expense.category }}</td>
-              <td>{{ expense.amount.toFixed(2) }}</td>
-              <td>
-                <button @click="editExpenses(expense)">Edit</button>
-                <button @click="deleteExpense(expense.id)" class="cancel-btn">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="expenses-container">
+      <div v-if="expenses.length" class="expenses-container">
+        <div class="expenses-card">
+          <h3 class="expenses-title">Expenses Table</h3>
+          <div class="table-container">
+            <table class="expenses-table">
+              <thead>
+                <tr>
+                  <th style="width: 16.66%">No</th>
+                  <th style="width: 16.66%">Date</th>
+                  <th style="width: 16.66%">Payment Method</th>
+                  <th style="width: 16.66%">Category</th>
+                  <th style="width: 16.66%">Amount (RM)</th>
+                  <th style="width: 16.66%">Action</th>
+                </tr>
+              </thead>
+            </table>
+            <div class="table-scroll-body">
+              <table class="expenses-table">
+                <tbody>
+                  <tr v-for="(expense, idx) in expenses" :key="expense.id">
+                    <td style="width: 16.66%">{{ idx + 1 }}</td>
+                    <td style="width: 16.66%">{{ formatDate(expense.dateTime) }}</td>
+                    <td style="width: 16.66%">{{ expense.payment_method }}</td>
+                    <td style="width: 16.66%">{{ expense.category }}</td>
+                    <td style="width: 16.66%">{{ expense.amount.toFixed(2) }}</td>
+                    <td style="width: 16.66%">
+                      <button @click="editExpenses(expense)" class="edit-button">Edit</button>
+                      <button @click="deleteExpense(expense.id)" class="delete-button">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
+      <div v-else class="loading">Loading expenses...</div>
     </div>
-    <div v-else class="loading">Loading expenses...</div>
 
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal-content">
@@ -359,8 +382,7 @@ onMounted(async () => {
               @drop.prevent="handleDrop"
             >
               <i class="fas fa-file-upload upload-icon"></i>
-              <h3>Upload Receipt</h3>
-              <p>Drag & drop your receipt PDF here or click to browse files</p>
+              <h3>Upload Receipt for auto fill</h3>
               <input
                 type="file"
                 id="fileInput"
@@ -368,6 +390,7 @@ onMounted(async () => {
                 hidden
                 @change="handleFileUpload"
               />
+              
               <button class="upload-btn" @click="triggerFileInput">
                 <i class="fas fa-cloud-upload-alt"></i> Choose File
               </button>
@@ -380,7 +403,6 @@ onMounted(async () => {
             <label>Date and Time:</label>
             <input type="datetime-local" v-model="newExpense.dateTime" required />
           </div>
-
           <div class="form-group">
             <label>Payment Method:</label>
             <select v-model="newExpense.payment_method" required>
@@ -503,78 +525,229 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.container {
-  display: flex;
-  min-height: 100vh;
-}
-
-.page-title {
-  color: #2c3e50;
-  margin-bottom: 30px;
-}
-
 .expenses-container {
-  overflow-y: scroll;
-  height: 500px;
+  width: 100%;
+  max-height: 80vh;
+  background-color: #f9fafb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f6f9fc;
 }
 
-.expense-table {
-  overflow-x: auto;
-  width: max-content;
+.table-container {
+  width: 100%;
+  height: 80%;
 }
 
-table {
+.expenses-card {
+  width: 90%;
+  background-color: #fff;
+  max-height: 80%;
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.expenses-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.expenses-table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: white;
 }
 
-th,
-td {
-  padding: 15px;
-  text-align: left;
-  border-bottom: 1px solid #ecf0f1;
+.table-scroll-body {
+  max-height: 430px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-th {
-  background: #3498db;
+.scrollable-tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+thead,
+.scrollable-tbody {
+  width: 100%;
+}
+
+thead tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.expenses-table th,
+.expenses-table td {
+  padding: 12px 16px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.expenses-table th {
+  background-color: #f4f6f8;
+  font-weight: 600;
+  color: #333;
+}
+
+.edit-button,
+.delete-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.edit-button {
+  background-color: #eaeaea;
+  color: #333;
+  margin-right: 6px;
+}
+
+.delete-button {
+  background-color: #e74c3c;
   color: white;
 }
 
-td {
-  color: lightblue;
+.expense-table {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 1100px;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
 }
 
-tr:hover {
-  background-color: #f5f6fa;
+.expense-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.expense-table th,
+.expense-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  text-align: center;
+}
+
+.expense-table th {
+  background-color: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.expense-table tr:hover {
+  background-color: #f9fafc;
+}
+
+button {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background-color: #f1f1f1;
+  color: #333;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #e0e0e0;
+}
+
+.cancel-btn {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.cancel-btn:hover {
+  background-color: #c0392b;
 }
 
 .loading {
-  padding: 20px;
-  text-align: center;
+  padding: 40px;
+  font-size: 18px;
   color: #7f8c8d;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .expense-table {
+    padding: 20px;
+  }
+
+  .expense-table th,
+  .expense-table td {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
 }
 
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
+  padding: 12px 20px;
+  background-color: #f7f9fb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.new-expense-btn {
-  background: #3498db;
-  color: white;
+.header-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+}
+
+.header-btn {
+  padding: 10px 18px;
   border: none;
-  padding: 12px 24px;
   border-radius: 4px;
+  background-color: #cddce0;
+  color: #2c3e50;
+  font-size: 14px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background-color 0.2s ease;
 }
 
-.new-expense-btn:hover {
-  background: #2980b9;
+.header-btn:hover {
+  background-color: #adb2b9;
+}
+
+.primary-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.primary-btn:hover {
+  background-color: #2980b9;
 }
 
 .modal-overlay {
@@ -644,6 +817,10 @@ select:focus {
   flex: 1;
 }
 
+.cancel-btn {
+  transition: scale(1.1);
+}
+
 .submit-btn {
   background: #2ecc71;
   color: white;
@@ -659,16 +836,46 @@ select:focus {
   cursor: not-allowed;
 }
 
+.submit-btn:hover {
+  transition: scale(1.2) ease;
+}
+
 .error-message {
   color: #e74c3c;
   margin-top: 15px;
   text-align: center;
 }
 
-.button-group {
-  display: flex;
-  gap: 10px;
+.upload-btn {
+  background-color: #4f46e5; /* Indigo */
+  color: #ffffff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+.upload-btn:hover {
+  background-color: #4338ca; /* Darker Indigo */
+  transform: translateY(-1px);
+}
+
+.upload-btn:active {
+  background-color: #3730a3; /* Even darker on click */
+  transform: scale(0.98);
+}
+
+.upload-btn i {
+  font-size: 16px;
+}
+
 
 @media (max-width: 480px) {
   .modal-content {

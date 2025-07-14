@@ -37,7 +37,7 @@ const handleLogin = async () => {
       localStorage.setItem('userId', res.data.user.id)
       localStorage.setItem('userName', res.data.user.username)
 
-      console.log('Login successful:', res.data.user)
+      // console.log('Login successful:', res.data.user)
 
       router.push('/dashboard')
     } else {

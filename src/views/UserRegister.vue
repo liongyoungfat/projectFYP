@@ -71,6 +71,9 @@ const handleRegister = async () => {
     isLoading.value = false
   }
 }
+const goToLogin = () => {
+  router.push('/login')
+}
 
 loadCompanies()
 
@@ -141,7 +144,10 @@ watch(role, handleRoleChange)
         <button type="submit" class="login-button">Register</button>
       </form>
 
-      <div class="login-footer">Already have an account? <a href="#">Login</a></div>
+      <div class="login-footer">
+        Already have an account?
+        <a href="#" @click.prevent="goToLogin">Login</a>
+      </div>
     </div>
   </div>
 </template>

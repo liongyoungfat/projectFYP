@@ -330,6 +330,7 @@ def get_users():
 @app.route('/api/updateUser', methods=['POST'])
 def update_user():
     data = request.get_json()
+    print('Received:', data)
     try:
         con = get_db_connection()
         cursor = con.cursor()
@@ -339,14 +340,12 @@ def update_user():
         update_query = """
             UPDATE users
             SET role = %s,
-                status = %s,
-                company_id = %s
+                status = %s
             WHERE id = %s
         """
         params = (
             data.get('role'),
             data.get('status'),
-            data.get('company_id'),
             data['id']
         )
         cursor.execute(update_query, params)

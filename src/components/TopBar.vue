@@ -6,6 +6,7 @@ const route = useRoute()
 
 const userStore = useUserStore()
 const username = userStore.username || 'User'
+console.log ('user',userStore)
 </script>
 
 <template>

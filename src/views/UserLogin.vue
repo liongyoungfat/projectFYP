@@ -28,12 +28,15 @@ const handleLogin = async () => {
         user_id: res.data.user.id,
         role: res.data.user.role,
         company_id: res.data.user.company_id,
+        username: res.data.user.username,
         token: res.data.token,
       })
 
       localStorage.setItem('userRole', res.data.user.role)
       localStorage.setItem('userCompanyId', res.data.user.company_id)
-      localStorage.setItem('userId', res.data.user.id) // optional but helpful
+      localStorage.setItem('userId', res.data.user.id)
+      localStorage.setItem('userName', res.data.user.username)
+
       console.log('Login successful:', res.data.user)
 
       router.push('/dashboard')

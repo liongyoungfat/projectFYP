@@ -5,8 +5,8 @@ import { useRouter } from 'vue-router'
 
 const userStore = useUserStore()
 const isAdmin = computed(() => userStore.role === 'admin')
-console.log('userStore', userStore)
-console.log('isAdmin', isAdmin.value)
+// console.log('userStore', userStore)
+// console.log('isAdmin', isAdmin.value)
 
 const router = useRouter()
 

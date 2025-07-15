@@ -248,8 +248,8 @@ const formatDate = (dateStr: string) => {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
-  });
+    second: '2-digit',
+  })
 }
 onMounted(async () => {
   try {
@@ -311,7 +311,29 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-      <div v-else class="loading">Loading revenues...</div>
+      <div v-else class="empty-state attractive-empty">
+        <div class="empty-icon bounce">
+          <svg width="80" height="80" fill="none" viewBox="0 0 80 80">
+            <rect x="12" y="28" width="56" height="36" rx="10" fill="#e0e7ef" />
+            <rect x="22" y="38" width="36" height="6" rx="3" fill="#a5b4fc" />
+            <rect x="22" y="50" width="24" height="6" rx="3" fill="#fca311" />
+            <rect x="22" y="62" width="16" height="6" rx="3" fill="#34d399" />
+            <circle cx="40" cy="22" r="10" fill="#f1f5f9" stroke="#6366f1" stroke-width="3" />
+            <path d="M40 16v12M34 22h12" stroke="#6366f1" stroke-width="3" stroke-linecap="round" />
+            <circle cx="40" cy="22" r="3" fill="#6366f1" />
+            <path d="M40 70c8 0 16-4 16-10H24c0 6 8 10 16 10z" fill="#e0e7ef" />
+          </svg>
+        </div>
+        <div class="empty-message">
+          <h3 class="gradient-text">No revenues found</h3>
+          <p class="fade-in">
+            Start by adding a new revenue to see it here.<br />
+            <span class="tip"
+              >Tip: Try the <b>Batch Upload according to template</b> for faster entry!</span
+            >
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -330,9 +352,7 @@ onMounted(async () => {
               hidden
               @change="handleFileUpload"
             />
-            <button class="upload-btn" @click="triggerFileInput">
-              Choose File
-            </button>
+            <button class="upload-btn" @click="triggerFileInput">Choose File</button>
           </div>
         </div>
       </div>
@@ -428,6 +448,7 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   background-color: #f6f9fc;
+  position: relative;
 }
 
 .table-container {
@@ -578,7 +599,7 @@ table {
 }
 
 .primary-btn {
-  background-color: #2563eb; 
+  background-color: #2563eb;
   color: white;
 }
 
@@ -705,5 +726,91 @@ select:focus {
     flex: auto;
     width: 100%;
   }
+}
+
+/* --- Custom Empty State Styles --- */
+.attractive-empty {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(99, 102, 241, 0.08);
+  min-height: 320px;
+  max-width: 600px;
+  width: 100%;
+  padding: 60px 0 40px 0;
+  position: fixed;
+  top: 50%;
+  left: 60%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.bounce {
+  animation: bounce 1.6s infinite cubic-bezier(0.28, 0.84, 0.42, 1);
+}
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+.gradient-text {
+  background: linear-gradient(90deg, #6366f1 0%, #fca311 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.fade-in {
+  animation: fadeIn 1.2s;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.tip {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.98rem;
+  color: #6366f1;
+  background: #eef2ff;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-weight: 500;
+}
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0 40px 0;
+  color: #64748b;
+}
+.empty-icon {
+  margin-bottom: 18px;
+}
+.empty-message h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #334155;
+  text-align: center;
+}
+.empty-message p {
+  font-size: 1rem;
+  color: #64748b;
+  text-align: center;
 }
 </style>

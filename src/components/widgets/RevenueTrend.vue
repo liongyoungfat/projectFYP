@@ -208,10 +208,15 @@ onMounted(fetchRevenueData)
     </div>
 
     <div id="revenue-chart-container">
-      <div v-if="revenueData.length > 0">
+      <template v-if="revenueData.length > 0">
         <canvas ref="revenueChart" height="120"></canvas>
-      </div>
-      <div v-else>Loading chart data...</div>
+      </template>
+      <template v-else>
+        <div class="empty-chart-state">
+          <span class="empty-icon">📉</span>
+          <div class="empty-message">No revenue data available for this period.</div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -399,6 +404,36 @@ onMounted(fetchRevenueData)
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.no-data-message {
+  padding: 16px;
+  background-color: #fff8e1;
+  color: #795548;
+  border: 1px solid #ffeeba;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.empty-chart-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: #888;
+  font-size: 1.1rem;
+  padding: 24px 0;
+}
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+.empty-message {
+  font-size: 1.1rem;
+  color: #888;
+}
 #revenue-chart-container {
   background: white;
   padding: 24px;

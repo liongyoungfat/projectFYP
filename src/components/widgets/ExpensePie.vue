@@ -179,10 +179,15 @@ watch([selectedYear, selectedMonth], fetchChartData)
       </div>
     </transition>
     <div class="chart-wrapper" id="expense-pie-chart-container">
-      <canvas ref="categoryChart"></canvas>
-    </div>
-    <div v-if="noDataMessage" class="no-data-message">
-      {{ noDataMessage }}
+      <template v-if="!noDataMessage">
+        <canvas ref="categoryChart"></canvas>
+      </template>
+      <template v-else>
+        <div class="empty-chart-state">
+          <span class="empty-icon">📉</span>
+          <div class="empty-message">No expense data available for this period.</div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -336,16 +341,23 @@ canvas {
   height: auto;
 }
 
-.no-data-message {
-  padding: 16px;
-  background-color: #fff8e1;
-  color: #795548;
-  border: 1px solid #ffeeba;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  margin-top: 10px;
+.empty-chart-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: #888;
+  font-size: 1.1rem;
+  padding: 24px 0;
+}
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+.empty-message {
+  font-size: 1.1rem;
+  color: #888;
 }
 
 @media print {

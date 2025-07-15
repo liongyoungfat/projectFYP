@@ -121,7 +121,7 @@ def login():
     try:
         con = get_db_connection()
         cursor = con.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s", (email, password))
+        cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s AND status = 'active'", (email, password))
         user = cursor.fetchone()
         cursor.close()
         con.close()

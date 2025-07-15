@@ -326,12 +326,15 @@ onUnmounted(() => {
     </div>
 
     <div class="chart-wrapper" id="profit-chart-container">
-      <canvas
-        ref="profitChart"
-        height="250"
-        v-if="revenueData.length > 0 && expensesData.length > 0"
-      ></canvas>
-      <div v-else>Loading chart data...</div>
+      <template v-if="revenueData.length > 0 && expensesData.length > 0">
+        <canvas ref="profitChart" height="250"></canvas>
+      </template>
+      <template v-else>
+        <div class="empty-chart-state">
+          <span class="empty-icon">📉</span>
+          <div class="empty-message">No net profit data available for this period.</div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -498,5 +501,24 @@ onUnmounted(() => {
   padding: 24px;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.empty-chart-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: #888;
+  font-size: 1.1rem;
+  padding: 24px 0;
+}
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+.empty-message {
+  font-size: 1.1rem;
+  color: #888;
 }
 </style>

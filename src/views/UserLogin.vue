@@ -45,7 +45,7 @@ const handleLogin = async () => {
     }
   } catch (error) {
     console.error('Login error:', error)
-    alert('Login failed')
+    alert('Login failed. Invalid credentials')
   } finally {
     isLoading.value = false
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import html2pdf from 'html2pdf.js'
@@ -39,6 +39,7 @@ const fetchRevenueData = async () => {
     revenueData.value = res.data
     filteredRevenueData.value = [...revenueData.value]
     // console.log('Fetched revenue data:', revenueData.value)
+    await nextTick()
     renderRevenueChart()
   } catch (err) {
     console.error('Failed to fetch revenue data:', err)
@@ -177,9 +178,7 @@ onMounted(fetchRevenueData)
             <span class="date-btn-icon">📅</span>
             {{ startDate && endDate ? `${startDate} → ${endDate}` : 'Select Date Range' }}
           </button>
-          <div v-if="showHoverTip" class="hover-tip">
-            Choose a date range to filter revenue
-          </div>
+          <div v-if="showHoverTip" class="hover-tip">Choose a date range to filter revenue</div>
         </div>
 
         <button
@@ -209,7 +208,10 @@ onMounted(fetchRevenueData)
     </div>
 
     <div id="revenue-chart-container">
-      <canvas ref="revenueChart" height="90"></canvas>
+      <div v-if="revenueData.length > 0">
+        <canvas ref="revenueChart" height="120"></canvas>
+      </div>
+      <div v-else>Loading chart data...</div>
     </div>
   </div>
 </template>

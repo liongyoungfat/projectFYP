@@ -26,6 +26,8 @@ const successMessage = ref('')
 const isDragging = ref(false)
 const ocrProcessing = ref(false)
 const receiptPreview = ref(null)
+const isProcessing = ref(false)
+
 
 const defaultExpense = {
   id: 0,
@@ -200,8 +202,8 @@ const uploadFile = async (file: File) => {
         amount: extractedData.amount,
       }
       console.log('pm', newExpense.value)
-      successMessage.value =
-        'Receipt processed successfully! Please review the extracted data before submit.'
+      // successMessage.value =
+      //   'Receipt processed successfully! Please review the extracted data before submit.'
       return extractedData
     } else if (processResponse.data.excel_data) {
       // This is an array of summary objects (from backend)
@@ -392,7 +394,7 @@ onMounted(async () => {
 
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal-content">
-        <h2>Create New Expense</h2>
+        <h2 class="modal-title-gradient">Create New Expense</h2>
         <div class="content-container">
           <div class="upload-section">
             <div
@@ -403,7 +405,9 @@ onMounted(async () => {
               @drop.prevent="handleDrop"
             >
               <i class="fas fa-file-upload upload-icon"></i>
-              <h3>Upload Receipt for auto fill</h3>
+              <h3 class="upload-title-gradient">
+                Upload Receipt for <span style="color: #fca311; font-weight: 700">auto fill</span>
+              </h3>
               <input
                 type="file"
                 id="fileInput"
@@ -412,9 +416,24 @@ onMounted(async () => {
                 @change="handleFileUpload"
               />
 
-              <button class="upload-btn" @click="triggerFileInput">
-                <i class="fas fa-cloud-upload-alt"></i> Choose File
+              <button
+                class="upload-btn"
+                @click="triggerFileInput"
+                :disabled="isProcessing"
+                :style="isProcessing ? 'opacity:0.6;cursor:not-allowed;' : ''"
+              >
+                📁
+                <span class="upload-text">
+                  {{ isProcessing ? 'Processing...' : 'Choose File' }}
+                </span>
               </button>
+              <div v-if="successMessage" class="ai-reminder">
+                <span>
+                  <b>Reminder:</b> Please
+                  <span style="color: #2563eb; font-weight: 600">review and confirm</span> all
+                  auto-filled fields before submitting. AI extraction may not be 100% accurate.
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -626,6 +645,12 @@ thead tr {
   border-radius: 5px;
   font-size: 14px;
   cursor: pointer;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
 }
 
 .edit-button {
@@ -633,10 +658,30 @@ thead tr {
   color: #333;
   margin-right: 6px;
 }
+.edit-button:hover {
+  background-color: #cbd5e1;
+  color: #2563eb;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
+}
+.edit-button:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
 
 .delete-button {
   background-color: #e74c3c;
   color: white;
+}
+.delete-button:hover {
+  background-color: #c0392b;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.18);
+}
+.delete-button:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.18);
 }
 
 .expense-table {
@@ -746,20 +791,38 @@ button:hover {
   background-color: #e2e8f0;
   color: #1e293b;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.09);
 }
-
 .header-btn:hover {
   background-color: #cbd5e1;
+  color: #2563eb;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
 }
-
+.header-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
 .primary-btn {
   background-color: #2563eb;
   color: white;
+  font-weight: 700;
 }
-
 .primary-btn:hover {
   background-color: #1d4ed8;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18);
+}
+.primary-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
 }
 
 .modal-overlay {
@@ -827,10 +890,22 @@ select:focus {
   border-radius: 4px;
   cursor: pointer;
   flex: 1;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
 }
-
-.cancel-btn {
-  transform: scale(1.1);
+.cancel-btn:hover {
+  background: #c0392b;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.18);
+}
+.cancel-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.18);
 }
 
 .submit-btn {
@@ -841,15 +916,26 @@ select:focus {
   border-radius: 4px;
   cursor: pointer;
   flex: 2;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
 }
-
 .submit-btn:disabled {
   background: #95a5a6;
   cursor: not-allowed;
 }
-
-.submit-btn:hover {
-  transform: scale(1.2) ease;
+.submit-btn:hover:enabled {
+  background: #27ae60;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(46, 204, 113, 0.18);
+}
+.submit-btn:active:enabled {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(46, 204, 113, 0.18);
 }
 
 .error-message {
@@ -868,26 +954,30 @@ select:focus {
   font-weight: 600;
   cursor: pointer;
   transition:
-    background-color 0.3s ease,
-    transform 0.2s ease;
+    background-color 0.3s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  will-change: transform, box-shadow;
 }
-
 .upload-btn:hover {
   background-color: #4338ca; /* Darker Indigo */
-  transform: translateY(-1px);
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.18);
 }
-
 .upload-btn:active {
   background-color: #3730a3; /* Even darker on click */
-  transform: scale(0.98);
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.18);
 }
-
 .upload-btn i {
   font-size: 16px;
+  transition: transform 0.18s;
 }
 
 /* Responsive */
@@ -999,5 +1089,28 @@ select:focus {
   font-size: 1rem;
   color: #64748b;
   text-align: center;
+}
+/* Attractive modal title */
+.modal-title-gradient {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 18px;
+  background: linear-gradient(90deg, #6366f1 0%, #fca311 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+}
+/* Attractive upload title */
+.upload-title-gradient {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #2563eb 0%, #fca311 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  letter-spacing: 0.5px;
 }
 </style>

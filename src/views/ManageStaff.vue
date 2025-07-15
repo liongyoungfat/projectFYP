@@ -16,6 +16,7 @@ interface Staff {
 
 const staff = ref<Staff[]>([])
 const editingId = ref<number | null>(null)
+const originalUser = ref<Staff | null>(null)
 const localhost = 'http://localhost:5000/'
 
 const fetchStaff = async () => {
@@ -36,11 +37,29 @@ const saveUser = async (user: Staff) => {
   console.log('Sending:', payload)
   await axios.post(localhost + 'api/updateUser', payload)
   editingId.value = null
+  originalUser.value = null
   fetchStaff()
 }
 
+const cancelEdit = () => {
+  if (editingId.value !== null && originalUser.value) {
+    // Restore original values
+    const idx = staff.value.findIndex((u) => u.id === originalUser.value!.id)
+    if (idx !== -1) {
+      staff.value[idx].role = originalUser.value.role
+      staff.value[idx].status = originalUser.value.status
+    }
+  }
+  editingId.value = null
+  originalUser.value = null
+}
 const startEditing = (id: number) => {
   editingId.value = id
+  const user = staff.value.find((u) => u.id === id)
+  if (user) {
+    // Save original values for cancel
+    originalUser.value = { ...user }
+  }
 }
 </script>
 
@@ -90,10 +109,21 @@ const startEditing = (id: number) => {
           </td>
           <td>{{ user.company_id }}</td>
           <td>
-            <button v-if="editingId === user.id" class="btn save-btn" @click="saveUser(user)">
-              Save
-            </button>
-            <button v-else class="btn edit-btn" @click="startEditing(user.id)">Edit</button>
+            <template v-if="editingId === user.id">
+              <button
+                class="btn save-btn"
+                @click="saveUser(user)"
+                :disabled="user.role === originalUser?.role && user.status === originalUser?.status"
+              >
+                Save
+              </button>
+              <button class="btn cancel-btn" @click="cancelEdit" style="margin-left: 8px">
+                Cancel
+              </button>
+            </template>
+            <template v-else>
+              <button class="btn edit-btn" @click="startEditing(user.id)">Edit</button>
+            </template>
           </td>
         </tr>
       </tbody>
@@ -155,30 +185,78 @@ th {
 }
 
 .btn {
-  padding: 6px 12px;
-  font-size: 14px;
+  padding: 6px 16px;
+  font-size: 15px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
 }
 
 .edit-btn {
   background-color: #eee;
   color: #333;
+  font-weight: 600;
 }
-
 .edit-btn:hover {
   background-color: #ddd;
+  color: #007bff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(0, 123, 255, 0.13);
+}
+.edit-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.13);
 }
 
 .save-btn {
   background-color: #007bff;
   color: #fff;
+  font-weight: 700;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    opacity 0.2s;
+}
+.save-btn:not(:disabled):hover {
+  background-color: #0069d9;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(0, 123, 255, 0.18);
+}
+.save-btn:not(:disabled):active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.18);
+}
+.save-btn:disabled {
+  background-color: #bfc8d8;
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+  transform: none;
 }
 
-.save-btn:hover {
-  background-color: #0069d9;
+.cancel-btn {
+  background-color: #f3f4f6;
+  color: #dc3545;
+  font-weight: 600;
+}
+.cancel-btn:hover {
+  background-color: #ffeaea;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(220, 53, 69, 0.13);
+}
+.cancel-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.13);
 }
 
 .badge {

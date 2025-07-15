@@ -8,6 +8,7 @@ const showAdd = ref(false)
 const revenues = ref<Revenue[]>([])
 const errorMessage = ref('')
 const successMessage = ref('')
+const isProcessing = ref(false)
 const isEditMode = ref(false)
 
 interface Revenue {
@@ -73,6 +74,7 @@ const handleBatchUpload = async (event: Event) => {
     })
     getRevenues()
     successMessage.value = 'Batch upload successful!'
+    alert(successMessage.value)
   } catch (err) {
     errorMessage.value = `Batch upload failed, ${err}`
   }
@@ -122,7 +124,9 @@ const uploadFile = async (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
   console.log(file)
-
+  isProcessing.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
   try {
     const uploadResponse = await axios.post(localhost + 'api/uploadFile?type=revenue', formData, {
       headers: {
@@ -154,8 +158,8 @@ const uploadFile = async (file: File) => {
         amount: extractedData.amount,
       }
       console.log('pm', newRevenue.value.title)
-      successMessage.value =
-        'Receipt processed successfully! Please review the extracted data before submit.'
+      // successMessage.value =
+      //   'Receipt processed successfully! Please review the extracted data before submit.'
       return extractedData
     } else if (processResponse.data.excel_data) {
       // This is an array of summary objects (from backend)
@@ -172,6 +176,8 @@ const uploadFile = async (file: File) => {
   } catch (error) {
     console.error('Upload failed:', error)
     errorMessage.value = 'Failed to process receipt. Please try it later.'
+  } finally {
+    isProcessing.value = false
   }
 }
 
@@ -191,6 +197,7 @@ const addRevenue = async () => {
     console.log(response.data)
     revenues.value.push(response.data)
     showAdd.value = false
+    alert('Revenue added successfully!')
     getRevenues()
   } catch (error) {
     console.error('Error adding revenue:', error)
@@ -221,6 +228,7 @@ const submitEditRevenue = async () => {
     showAdd.value = false
     isEditMode.value = false
     successMessage.value = 'Revenue updated successfully!'
+    alert(successMessage.value)
   } catch (error) {
     console.error('Error updating revenue:', error)
     errorMessage.value = 'Failed to update revenue. Please try again later.'
@@ -233,6 +241,7 @@ const deleteRevenue = async (id: number) => {
     await axios.post(localhost + `api/deleteRevenue`, { id: id })
     revenues.value = revenues.value.filter((rev) => rev.id !== id)
     successMessage.value = 'Revenue deleted successfully!'
+    alert(successMessage.value)
   } catch (error) {
     console.error('Error deleting revenue:', error)
     errorMessage.value = 'Failed to delete revenue. Please try again later.'
@@ -310,6 +319,13 @@ onMounted(async () => {
             </div>
           </div>
         </div>
+        <div v-if="successMessage && !isProcessing" class="ai-reminder">
+          <span class="reminder-icon">💡</span>
+          <span class="reminder-text"
+            >{{ successMessage }}<br />Please review and edit the extracted data before
+            submitting.</span
+          >
+        </div>
       </div>
       <div v-else class="empty-state attractive-empty">
         <div class="empty-icon bounce">
@@ -339,26 +355,48 @@ onMounted(async () => {
 
   <div v-if="showAdd" class="modal-overlay" @click.self="showAdd = false">
     <div class="modal-content">
-      <h2>{{ isEditMode ? 'Edit Revenue' : 'Input New Revenue' }}</h2>
+      <!-- <h2>{{ isEditMode ? 'Edit Revenue' : 'Add New Revenue' }}</h2> -->
       <div class="content-container">
-        <div class="upload-section">
-          <div class="upload-area">
-            <i class="fas fa-file-upload upload-icon"></i>
-            <h3>Upload Receipt</h3>
-            <input
-              type="file"
-              id="fileInput"
-              accept=".pdf,.jpg,.jpeg,.png"
-              hidden
-              @change="handleFileUpload"
-            />
-            <button class="upload-btn" @click="triggerFileInput">Choose File</button>
+        <div class="upload-section attractive-upload">
+          <h2 class="modal-gradient-title">
+            {{ isEditMode ? 'Edit Revenue' : 'Create New Revenue' }}
+          </h2>
+          <div class="modal-gradient-subtitle">
+            Upload Receipt <span class="auto-fill">for auto fill</span>
+          </div>
+          <input
+            type="file"
+            id="fileInput"
+            accept=".pdf,.jpg,.jpeg,.png"
+            hidden
+            @change="handleFileUpload"
+          />
+          <button
+            class="upload-btn attractive-upload-btn"
+            @click="triggerFileInput"
+            :disabled="isProcessing"
+            :style="isProcessing ? 'opacity:0.6;cursor:not-allowed;' : ''"
+          >
+            <span class="upload-icon">📁</span>
+            <span class="upload-text">
+              {{ isProcessing ? 'Processing...' : 'Choose File' }}
+            </span>
+          </button>
+          <div v-if="successMessage && !isProcessing" class="ai-reminder">
+            <span class="reminder-icon">💡</span>
+            <span class="reminder-text">
+              <b>Reminder:</b> Please
+              <span style="color: #2563eb; font-weight: 600">review and confirm</span> all
+              auto-filled fields before submitting.<br />
+              <span style="color: #64748b; font-size: 0.97em"
+                >AI extraction may not be 100% accurate.</span
+              >
+            </span>
           </div>
         </div>
       </div>
 
       <form @submit.prevent="handleSubmit">
-        {{ isEditMode ? 'Edit Revenue' : 'Add New Revenue' }}
         <div class="form-group">
           <label>Date and Time:</label>
           <input type="datetime-local" v-model="newRevenue.dateTime" required />
@@ -384,7 +422,13 @@ onMounted(async () => {
         </div>
 
         <div class="form-actions">
-          <button type="button" @click="showAdd = false" class="cancel-btn">Cancel</button>
+          <button
+            type="button"
+            @click="((showAdd = false), (isEditMode = false))"
+            class="cancel-btn"
+          >
+            Cancel
+          </button>
           <button type="submit" :disabled="!formValid" class="submit-btn">
             {{ isEditMode ? 'Save Changes' : 'Save Revenue' }}
           </button>
@@ -399,6 +443,85 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.upload-section.attractive-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.upload-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+.upload-btn.attractive-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #6366f1;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.13);
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+}
+.upload-btn.attractive-upload-btn:hover {
+  background: #4338ca;
+  color: #fca311;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.18);
+}
+.upload-btn.attractive-upload-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.18);
+}
+.upload-icon {
+  font-size: 1.3rem;
+  margin-right: 2px;
+}
+.upload-text {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.modal-gradient-title {
+  width: 100%;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, #6366f1 0%, #fca311 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-gradient-subtitle {
+  width: 100%;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 18px;
+  background: linear-gradient(90deg, #6366f1 0%, #fca311 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auto-fill {
+  color: #fca311;
+  font-weight: 700;
+}
+
 .container {
   display: flex;
   min-height: 100vh;
@@ -417,27 +540,46 @@ onMounted(async () => {
 }
 
 .header-btn {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 4px;
-  background-color: #cddce0;
-  color: #2c3e50;
+  padding: 8px 16px;
   font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background-color: #e2e8f0;
+  color: #1e293b;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.09);
 }
-
 .header-btn:hover {
-  background-color: #adb2b9;
+  background-color: #cbd5e1;
+  color: #2563eb;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
 }
-
+.header-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
 .primary-btn {
-  background-color: #3498db;
+  background-color: #2563eb;
   color: white;
+  font-weight: 700;
 }
-
 .primary-btn:hover {
-  background-color: #2980b9;
+  background-color: #1d4ed8;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18);
+}
+.primary-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
 }
 
 .expenses-container {
@@ -526,6 +668,12 @@ thead tr {
   border-radius: 5px;
   font-size: 14px;
   cursor: pointer;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
 }
 
 .edit-button {
@@ -533,10 +681,30 @@ thead tr {
   color: #333;
   margin-right: 6px;
 }
+.edit-button:hover {
+  background-color: #cbd5e1;
+  color: #2563eb;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
+}
+.edit-button:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
 
 .delete-button {
   background-color: #e74c3c;
   color: white;
+}
+.delete-button:hover {
+  background-color: #c0392b;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.18);
+}
+.delete-button:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.18);
 }
 
 table {
@@ -672,6 +840,25 @@ select:focus {
   border-radius: 4px;
   cursor: pointer;
   flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.09);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+}
+.cancel-btn:hover {
+  background: #c0392b;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.18);
+}
+.cancel-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.18);
 }
 
 .submit-btn {
@@ -682,6 +869,25 @@ select:focus {
   border-radius: 4px;
   cursor: pointer;
   flex: 2;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(46, 204, 113, 0.09);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+}
+.submit-btn:hover:enabled {
+  background: #27ae60;
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(46, 204, 113, 0.18);
+}
+.submit-btn:active:enabled {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(46, 204, 113, 0.18);
 }
 
 .submit-btn:disabled {
@@ -693,6 +899,34 @@ select:focus {
   color: #e74c3c;
   margin-top: 15px;
   text-align: center;
+}
+
+.processing-message {
+  color: #6366f1;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+.ai-reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #eef2ff;
+  color: #6366f1;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin: 12px 0 18px 0;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.07);
+}
+.reminder-icon {
+  font-size: 1.3rem;
+  margin-top: 2px;
+}
+.reminder-text {
+  flex: 1;
 }
 
 .button-group {

@@ -93,7 +93,10 @@ const exportTaxPDF = () => {
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
         </label>
-        <button @click="exportTaxPDF" class="export-btn">Export PDF</button>
+        <button @click="exportTaxPDF" class="export-btn attractive-btn animated-btn">
+          <span class="export-btn-icon">📤</span>
+          <span>Export as PDF</span>
+        </button>
       </div>
     </div>
 
@@ -143,6 +146,13 @@ const exportTaxPDF = () => {
 
       <p class="note">Rates may change; always check official LHDN site.</p>
     </div>
+    <div id="smartTaxAdvisor" class="mt-4 p-3 border rounded bg-light">
+      <h5><i class="bi bi-lightbulb"></i> Smart Tax Advice</h5>
+      <ul id="aiTaxTips">
+        <li>Checking tax law updates...</li>
+      </ul>
+    </div>
+
   </div>
 </template>
 
@@ -201,18 +211,39 @@ const exportTaxPDF = () => {
 }
 
 .export-btn {
-  background: #2563eb;
+  background: linear-gradient(90deg, #3b82f6 60%, #6366f1 100%);
   color: white;
-  padding: 0.45rem 1rem;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
   border: none;
-  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.09);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
 }
-
 .export-btn:hover {
-  background: #1d4ed8;
+  background: linear-gradient(90deg, #2563eb 60%, #4f46e5 100%);
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
+}
+.export-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
+.export-btn-icon {
+  font-size: 1.2rem;
+  margin-right: 4px;
+  transition: transform 0.18s;
 }
 
 .year-label {

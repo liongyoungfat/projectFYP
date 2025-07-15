@@ -81,17 +81,19 @@
     <section class="analytics-section">
       <div class="analytics-container">
         <div class="analytics-text">
-          <h2>Real-time Financial Analytics</h2>
+          <h2>💡 Real-time AI Financial Insights for SMEBs</h2>
           <p>
-            Monitor your portfolio performance, track market trends, and receive instant alerts on
-            significant changes. Our advanced algorithms analyze thousands of data points to provide
-            you with actionable insights.
+            Monitor your track expenses, generate reports, and receive predictive financial
+            forecasts—all in real time. Our intelligent platform empowers small and medium
+            e-commerce businesses with cost-effective automation that replaces manual bookkeeping.
+            With built-in AI analytics, financial decisions are now faster, smarter, and
+            stress-free.
           </p>
           <ul>
-            <li>✅ Live market data integration</li>
-            <li>✅ Customizable alert system</li>
-            <li>✅ Advanced risk assessment</li>
-            <li>✅ Portfolio optimization tools</li>
+            <li>✅ Automated expense tracking and categorization</li>
+            <li>✅ Real-time financial dashboards with forecasting</li>
+            <li>✅ Tax and staff management</li>
+            <li>✅ Predictive analytics for sales, profit, and resource allocation</li>
           </ul>
         </div>
         <div class="analytics-image">

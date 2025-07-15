@@ -73,8 +73,9 @@ const fetchChartData = async () => {
         pieChartInstance = null
       }
       return
+    } else {
+      noDataMessage.value = ''
     }
-
     // console.log('categoryResponse.data', categoryResponse.data)
     renderCharts(data)
   } catch (error) {
@@ -125,7 +126,6 @@ const renderCharts = (categoryData: CategoryDataItem[]) => {
 const exportExpensePieChart = () => {
   const container = document.getElementById('expense-pie-chart-container')
   if (!container) return
-
   const now = new Date()
   const timestamp =
     now.toISOString().split('T')[0] + '_' + now.toTimeString().split(' ')[0].replace(/:/g, '-')
@@ -151,28 +151,33 @@ watch([selectedYear, selectedMonth], fetchChartData)
 </script>
 <template>
   <div class="chart-container">
-    <div class="filter-controls">
-      <label>
-        Year:
-        <select v-model="selectedYear">
-          <option v-for="year in availableYears" :key="year" :value="year">
-            {{ year }}
-          </option>
-        </select>
-      </label>
+    <transition name="filter-bar-fade">
+      <div class="filter-controls" v-show="true">
+        <label>
+          Year:
+          <select v-model="selectedYear">
+            <option v-for="year in availableYears" :key="year" :value="year">
+              {{ year }}
+            </option>
+          </select>
+        </label>
 
-      <label>
-        Month:
-        <select v-model="selectedMonth">
-          <option v-for="monthNum in availableMonths" :key="monthNum" :value="monthNum">
-            {{ months[monthNum - 1].label }}
-          </option>
-        </select>
-      </label>
-    </div>
-    <div class="export-controls">
-      <button @click="exportExpensePieChart">Export as PDF</button>
-    </div>
+        <label>
+          Month:
+          <select v-model="selectedMonth">
+            <option v-for="monthNum in availableMonths" :key="monthNum" :value="monthNum">
+              {{ months[monthNum - 1].label }}
+            </option>
+          </select>
+        </label>
+        <div class="export-controls">
+          <button class="export-btn attractive-btn animated-btn" @click="exportExpensePieChart">
+            <span class="export-btn-icon">📤</span>
+            <span>Export as PDF</span>
+          </button>
+        </div>
+      </div>
+    </transition>
     <div class="chart-wrapper" id="expense-pie-chart-container">
       <canvas ref="categoryChart"></canvas>
     </div>
@@ -185,88 +190,203 @@ watch([selectedYear, selectedMonth], fetchChartData)
 <style scoped>
 .chart-container {
   display: flex;
-  gap: 22px;
+  flex-direction: column;
+  gap: 20px;
   margin-bottom: 30px;
-  flex-direction: column;
-}
-
-.chart-wrapper {
-  background: #f4fafe;
-  border-radius: 18px;
-  box-shadow: 0 4px 14px #0001;
-  padding: 25px 18px 20px 18px;
-  min-width: 300px;
-  height: 410px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
 }
 
 .filter-controls {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 20px;
   align-items: center;
-  justify-content: flex-start;
-  margin: 16px 0;
-  padding: 10px 16px;
-  background: #ffffff;
+  background: #fff;
+  padding: 12px 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  justify-content: flex-start;
+}
+.filter-controls .export-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
 }
 
 .filter-controls label {
   display: flex;
   flex-direction: column;
-  font-weight: 500;
-  font-size: 14px;
-  color: #333;
+  font-weight: 600;
+  font-size: 15px;
+  color: #374151;
+  min-width: 140px;
 }
 
 .filter-controls select {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  margin-top: 4px;
-  min-width: 120px;
+  padding: 10px 36px 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #d1d5db;
+  background-color: #f9fafb;
+  font-size: 15px;
+  font-weight: 500;
+  color: #222;
+  appearance: none;
+  outline: none;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.04);
+  cursor: pointer;
+  position: relative;
+}
+.filter-controls select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.13);
+  background-color: #f0f7ff;
+}
+.filter-controls select:hover {
+  border-color: #60a5fa;
+  background-color: #f3f6fa;
+}
+.filter-controls label {
+  position: relative;
+}
+.filter-controls label:after {
+  content: '\25BC';
+  position: absolute;
+  right: 18px;
+  top: 38px;
+  font-size: 13px;
+  color: #888;
+  pointer-events: none;
+  transition:
+    color 0.18s,
+    transform 0.18s;
+}
+.filter-controls select:focus + .filter-controls label:after,
+.filter-controls select:active + .filter-controls label:after {
+  color: #3b82f6;
+  transform: rotate(180deg);
 }
 
-.no-data-message {
-  padding: 16px;
-  color: #555;
-  background: #fff3cd;
-  border: 1px solid #ffeeba;
+/* Export PDF button UI from MonthlyExpensesChart.vue */
+.export-btn {
+  background: linear-gradient(90deg, #3b82f6 60%, #6366f1 100%);
+  color: white;
+  padding: 10px 18px;
   border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 16px;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.09);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+  outline: none;
+}
+.export-btn:hover {
+  background: linear-gradient(90deg, #2563eb 60%, #4f46e5 100%);
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
+}
+.export-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
+.export-btn-icon {
+  font-size: 1.2rem;
+  margin-right: 4px;
+  transition: transform 0.18s;
+}
+
+.chart-wrapper {
+  background: #f4fafe;
+  border-radius: 18px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  max-width: 95%;
+  max-height: 75%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 #expense-pie-chart-container {
   background: #ffffff;
-  padding: 16px;
+  padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  margin-top: 16px;
-}
-
-.export-controls {
-  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  margin-top: 8px;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: center;
 }
 
-.export-controls button {
-  padding: 6px 12px;
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+.no-data-message {
+  padding: 16px;
+  background-color: #fff8e1;
+  color: #795548;
+  border: 1px solid #ffeeba;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 500;
-  border-radius: 6px;
-  border: none;
-  background-color: #f97316;
-  color: white;
-  cursor: pointer;
+  text-align: center;
+  margin-top: 10px;
 }
 
-.export-controls button:hover {
-  background-color: #ea580c;
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #000;
+  }
+
+  .chart-container,
+  .chart-wrapper,
+  #expense-pie-chart-container {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  .export-controls {
+    display: none;
+  }
+}
+/* Smooth transition for filter-controls bar */
+.filter-bar-fade-enter-active,
+.filter-bar-fade-leave-active {
+  transition:
+    opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.filter-bar-fade-enter-from,
+.filter-bar-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-18px) scale(0.98);
+}
+.filter-bar-fade-enter-to,
+.filter-bar-fade-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 </style>

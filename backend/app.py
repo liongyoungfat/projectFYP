@@ -21,8 +21,8 @@ UPLOAD_FOLDER='/temp'
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
-CORS(app) 
-CORS (app, resources= {r"/api/process-receipt":{"origins":"http://localhost:5173"}})
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+
 
 
 db_config={
@@ -407,6 +407,53 @@ def get_available_months():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/companies/threshold')
+def get_threshold():
+    company_id = request.args.get('company_id')
+    if not company_id:
+        return jsonify({'error': 'Missing company_id'}), 400
+
+    try:
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("SELECT threshold FROM companies WHERE id = %s", (company_id,))
+        result = cursor.fetchone()
+        cursor.close()
+
+        if result:
+            return jsonify({'threshold': result['threshold']}), 200
+        else:
+            return jsonify({'error': 'Company not found'}), 404
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/companies/threshold/update', methods=['POST'])
+def update_threshold():
+    data = request.get_json()
+    company_id = data.get('company_id')
+    new_threshold = data.get('new_threshold')
+    print('dta',data)
+
+    if not company_id or new_threshold is None:
+        return jsonify({'error': 'Missing company_id or new_threshold'}), 400
+
+    try:
+        con = get_db_connection()
+        cursor = con.cursor()
+        cursor.execute("UPDATE companies SET threshold = %s WHERE id = %s", (new_threshold, company_id))
+        con.commit()
+        cursor.close()
+
+        # if cursor.rowcount > 0:
+        return jsonify({'message': 'Threshold updated successfully'}), 200
+        # else:
+        #     return jsonify({'error': 'Company not found or threshold not changed'}), 404
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/expenses/certain/period')

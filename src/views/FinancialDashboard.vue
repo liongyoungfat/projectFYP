@@ -92,17 +92,21 @@ const generateFinancialReport = async () => {
 const exportForecastPDF = () => {
   const report = document.getElementById('forecast-report-content')
   if (!report) return
-  html2pdf()
-    .from(report)
-    .set({
-      margin: 0.5,
-      filename: 'Financial_Forecast_Report.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-    })
-    .save()
+
+  // Wait until DOM/render finishes
+  setTimeout(() => {
+    html2pdf()
+      .from(report)
+      .set({
+        margin: 0.5,
+        filename: 'Financial_Forecast_Report.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true }, // enable CORS for external images if any
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      })
+      .save()
+  }, 200) // small delay allows Vue to update DOM
 }
 
 onMounted(() => {
@@ -132,7 +136,8 @@ onMounted(() => {
         </div>
         <button @click="generateFinancialReport" class="report-btn" :disabled="isGenerating">
           <i class="fas fa-file-alt"></i>
-          {{ isGenerating ? 'Generating...' : 'Generate Financial Report' }}
+          <span v-if="isGenerating" class="jumping-text">Generating... Forecasting takes time</span>
+          <span v-else>Generate Financial Report</span>
         </button>
       </div>
     </div>
@@ -152,8 +157,8 @@ onMounted(() => {
     </div>
     <div v-if="showForecastModal" class="modal-overlay">
       <div class="forecast-modal">
-        <h3>Financial Forecast Report</h3>
         <div class="forecast-content" id="forecast-report-content">
+          <h3>Financial Forecast Report</h3>
           <div v-if="forecastResponse">
             <h4>Executive Summary</h4>
             <p>{{ forecastResponse.executive_summary }}</p>
@@ -220,9 +225,11 @@ onMounted(() => {
 
 <style scoped>
 .dashboard-container {
-  max-height: 80vh;
+  height: 91vh;
   padding: 28px 16px 32px 16px;
+  overflow-y: scroll;
 }
+
 .chart-header {
   display: flex;
   justify-content: space-between;
@@ -405,7 +412,16 @@ h2 {
   border-radius: 5px;
   cursor: pointer;
   float: right;
+  transition:
+    background-color 0.2s ease,
+    transform 0.5s ease;
 }
+
+.close-btn:hover {
+  background: #557fbe;
+  transform: scale(1.05);
+}
+
 /* Place in your global stylesheet */
 .forecast-modal {
   background: #fff;
@@ -470,12 +486,13 @@ h2 {
 
 #forecast-report-content {
   overflow-x: visible !important;
+  margin-bottom: 20px;
 }
 
 .forecast-modal h3 {
   color: #1565c0;
   font-weight: 700;
-  margin-bottom: 1.2rem;
+  font-size: 1.75rem;
 }
 
 .forecast-modal h4 {
@@ -527,17 +544,32 @@ h2 {
   font-weight: 600;
   cursor: pointer;
   color: white;
+  transition:
+    background-color 0.2s ease,
+    transform 0.5s ease;
 }
 
 .export-btn:hover {
   background-color: #1d4ed8;
-  transform: scale(1.2);
+  transform: scale(1.05);
 }
 
-/* Hide .no-print elements in print/export */
 @media print {
   .no-print {
     display: none !important;
+  }
+
+  .forecast-modal {
+    box-shadow: none !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #000;
+    font-family: Arial, sans-serif;
   }
 }
 
@@ -556,3 +588,8 @@ h2 {
   font-weight: bold;
 }
 </style>
+
+@keyframes jump { 0%, 100% { transform: translateY(0); } 20% { transform: translateY(-8px); } 40% {
+transform: translateY(0); } 60% { transform: translateY(-6px); } 80% { transform: translateY(0); } }
+.jumping-text { display: inline-block; animation: jump 1.2s infinite; font-weight: 600;
+letter-spacing: 0.5px; }

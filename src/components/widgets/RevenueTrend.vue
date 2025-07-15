@@ -21,7 +21,17 @@ const localhost = 'http://localhost:5000/'
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
+
+const currentYear = new Date().getFullYear()
+const defaultStartDate = `${currentYear}-01-01`
+const defaultEndDate = `${currentYear}-12-31`
+
+startDate.value = defaultStartDate
+endDate.value = defaultEndDate
 const filteredRevenueData = ref<RevenueItem[]>([])
+const isExporting = ref(false)
+const showDatePicker = ref(false)
+const showHoverTip = ref(false)
 
 const fetchRevenueData = async () => {
   try {
@@ -121,44 +131,83 @@ const renderRevenueChart = () => {
   })
 }
 
-const exportRevenueChart = () => {
-  const container = document.getElementById('revenue-chart-container')
-  if (!container) return
+const exportRevenueChart = async () => {
+  if (isExporting.value) return
+  isExporting.value = true
 
-  const now = new Date()
-  const timestamp =
-    now.toISOString().split('T')[0] + '_' + now.toTimeString().split(' ')[0].replace(/:/g, '-')
-  const filename = `RevenueTrend_${timestamp}.pdf`
+  try {
+    const container = document.getElementById('revenue-chart-container')
+    if (!container) return
 
-  const opt = {
-    margin: 0.3,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+    const now = new Date()
+    const timestamp =
+      now.toISOString().split('T')[0] + '_' + now.toTimeString().split(' ')[0].replace(/:/g, '-')
+    const filename = `RevenueTrend_${timestamp}.pdf`
+
+    const opt = {
+      margin: 0.3,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+    }
+
+    await html2pdf().set(opt).from(container).save()
+  } catch (err) {
+    console.error('Export failed:', err)
+  } finally {
+    isExporting.value = false
   }
-
-  html2pdf().set(opt).from(container).save()
 }
 
 onMounted(fetchRevenueData)
 </script>
 <template>
-  <div class="dashboard-chart mb-3">
-    <div class="chart-header">
-      <h3>Revenue Over Time</h3>
-      <div class="date-range-picker">
-        <label>Start Date:</label>
-        <input type="date" v-model="startDate" />
-        <label>End Date:</label>
-        <input type="date" v-model="endDate" />
-        <button @click="applyDateFilter">Apply</button>
-        <button @click="resetDateFilter">Reset</button>
+  <div class="dashboard-chart">
+    <div class="chart-toolbar">
+      <h3 class="chart-title">📊 Revenue Over Time</h3>
+
+      <div class="toolbar-actions">
+        <div class="date-button-wrapper" @mouseleave="showHoverTip = false">
+          <button
+            @click="showDatePicker = !showDatePicker"
+            @mouseenter="showHoverTip = true"
+            class="date-toggle-btn"
+          >
+            <span class="date-btn-icon">📅</span>
+            {{ startDate && endDate ? `${startDate} → ${endDate}` : 'Select Date Range' }}
+          </button>
+          <div v-if="showHoverTip" class="hover-tip">
+            Choose a date range to filter revenue
+          </div>
+        </div>
+
+        <button
+          :disabled="isExporting"
+          class="export-btn attractive-btn animated-btn"
+          @click="exportRevenueChart"
+        >
+          <span class="export-btn-icon">📤</span>
+          <span>{{ isExporting ? 'Generating PDF...' : 'Export as PDF' }}</span>
+        </button>
+      </div>
+
+      <div v-if="showDatePicker" class="date-popup">
+        <div class="date-field">
+          <label>Start Date:</label>
+          <input type="date" v-model="startDate" />
+        </div>
+        <div class="date-field">
+          <label>End Date:</label>
+          <input type="date" v-model="endDate" />
+        </div>
+        <div class="popup-buttons">
+          <button class="animated-btn filter-btn" @click="applyDateFilter">Apply</button>
+          <button class="animated-btn reset-btn" @click="resetDateFilter">Reset</button>
+        </div>
       </div>
     </div>
-    <div class="export-controls">
-      <button @click="exportRevenueChart">Export as PDF</button>
-    </div>
+
     <div id="revenue-chart-container">
       <canvas ref="revenueChart" height="90"></canvas>
     </div>
@@ -168,76 +217,190 @@ onMounted(fetchRevenueData)
 <style scoped>
 .dashboard-chart {
   background: #f4fafe;
+  padding: 24px;
   border-radius: 18px;
-  box-shadow: 0 4px 14px #0001;
-  padding: 20px 30px 16px 30px;
-  margin-bottom: 30px;
-  color: black;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', sans-serif;
+  color: #111;
 }
 
-.chart-header {
+.chart-toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
 }
 
-.date-range-picker {
+.chart-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.date-toggle-btn,
+/* Export PDF button UI from MonthlyExpensesChart.vue */
+.export-btn {
+  background: linear-gradient(90deg, #3b82f6 60%, #6366f1 100%);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-}
-
-.date-range-picker label {
-  font-weight: bold;
-}
-
-.date-range-picker input[type='date'] {
-  padding: 5px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.date-range-picker button {
-  padding: 5px 10px;
-  background-color: #36a2eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.09);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+}
+.export-btn:hover {
+  background: linear-gradient(90deg, #2563eb 60%, #4f46e5 100%);
+  color: #fff;
+  transform: scale(1.07) translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
+}
+.export-btn:active {
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+}
+.export-btn-icon {
+  font-size: 1.2rem;
+  margin-right: 4px;
+  transition: transform 0.18s;
 }
 
-.date-range-picker button:hover {
-  background-color: #2a8acb;
+.date-popup {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  min-width: 240px;
+  z-index: 100;
+}
+
+.date-popup .date-field {
+  margin-bottom: 12px;
+}
+
+.date-popup label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.date-popup input[type='date'] {
+  width: 100%;
+  padding: 8px;
+  font-size: 0.9rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.popup-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.date-button-wrapper {
+  position: relative;
+}
+
+.date-toggle-btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+
+.date-toggle-btn:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.date-toggle-btn:focus {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.hover-tip {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  background-color: #fefefe;
+  color: #333;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.filter-btn {
+  background-color: #3b82f6;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.reset-btn {
+  background-color: #d1d5db;
+  color: #333;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.animated-btn {
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+}
+.animated-btn:active {
+  transform: scale(0.95);
+}
+.animated-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 #revenue-chart-container {
-  background: #ffffff;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  margin-top: 16px;
-}
-
-.export-controls {
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.export-controls button {
-  padding: 6px 12px;
-  font-weight: 500;
-  border-radius: 6px;
-  border: none;
-  background-color: #3b82f6;
-  color: white;
-  cursor: pointer;
-}
-
-.export-controls button:hover {
-  background-color: #2563eb;
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 </style>

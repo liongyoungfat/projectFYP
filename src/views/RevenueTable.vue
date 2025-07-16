@@ -6,6 +6,34 @@ import { useUserStore } from '@/stores/user'
 const localhost = 'http://localhost:5000/'
 const showAdd = ref(false)
 const revenues = ref<Revenue[]>([])
+const sortKey = ref('dateTime')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
+const sortedRevenues = computed(() => {
+  const key = sortKey.value
+  const order = sortOrder.value
+  return [...revenues.value].sort((a, b) => {
+    let aVal = a[key]
+    let bVal = b[key]
+    // For dateTime, sort by date
+    if (key === 'dateTime') {
+      aVal = new Date(aVal)
+      bVal = new Date(bVal)
+    }
+    if (aVal < bVal) return order === 'asc' ? -1 : 1
+    if (aVal > bVal) return order === 'asc' ? 1 : -1
+    return 0
+  })
+})
+
+function setSort(key: string) {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortOrder.value = 'asc'
+  }
+}
 const errorMessage = ref('')
 const successMessage = ref('')
 const isProcessing = ref(false)
@@ -248,18 +276,22 @@ const deleteRevenue = async (id: number) => {
   }
 }
 
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('en-GB', {
-    timeZone: 'Asia/Kuala_Lumpur',
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+function formatDateKL(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleString('en-GB', {
+    timeZone:     'UTC',
+    weekday:      'short',   // "Thu"
+    day:          '2-digit', // "17"
+    month:        'short',   // "Jul"
+    year:         'numeric', // "2025"
+    hour:         '2-digit', // "16"
+    minute:       '2-digit', // "01"
+    second:       '2-digit', // "00"
+    hour12:       false
   })
 }
+
+
 onMounted(async () => {
   try {
     getRevenues()
@@ -291,11 +323,28 @@ onMounted(async () => {
             <table class="expenses-table fixed-table">
               <thead>
                 <tr>
-                  <th style="width: 16.66%">Date Time</th>
-                  <th style="width: 16.66%">Title</th>
-                  <th style="width: 16.66%">Description</th>
-                  <th style="width: 16.66%">Category</th>
-                  <th style="width: 16.66%">Amount</th>
+                  <th style="width: 16.66%; cursor: pointer" @click="setSort('dateTime')">
+                    Date Time
+                    <span v-if="sortKey === 'dateTime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                  </th>
+                  <th style="width: 16.66%; cursor: pointer" @click="setSort('title')">
+                    Title
+                    <span v-if="sortKey === 'title'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                  </th>
+                  <th style="width: 16.66%; cursor: pointer" @click="setSort('description')">
+                    Description
+                    <span v-if="sortKey === 'description'">{{
+                      sortOrder === 'asc' ? '▲' : '▼'
+                    }}</span>
+                  </th>
+                  <th style="width: 16.66%; cursor: pointer" @click="setSort('category')">
+                    Category
+                    <span v-if="sortKey === 'category'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                  </th>
+                  <th style="width: 16.66%; cursor: pointer" @click="setSort('amount')">
+                    Amount
+                    <span v-if="sortKey === 'amount'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                  </th>
                   <th style="width: 16.66%">Action</th>
                 </tr>
               </thead>
@@ -303,8 +352,8 @@ onMounted(async () => {
             <div class="table-scroll-body">
               <table class="expenses-table">
                 <tbody>
-                  <tr v-for="rev in revenues" :key="rev.id">
-                    <td style="width: 16.66%">{{ formatDate(rev.dateTime) }}</td>
+                  <tr v-for="rev in sortedRevenues" :key="rev.id">
+                    <td style="width: 16.66%">{{ formatDateKL(rev.dateTime) }}</td>
                     <td style="width: 16.66%">{{ rev.title }}</td>
                     <td style="width: 16.66%">{{ rev.description }}</td>
                     <td style="width: 16.66%">{{ rev.category }}</td>
@@ -401,6 +450,11 @@ onMounted(async () => {
         </div>
 
         <div class="form-group">
+          <label>Description:</label>
+          <input v-model="newRevenue.description" />
+        </div>
+
+        <div class="form-group">
           <label>Category:</label>
           <select v-model="newRevenue.category" required>
             <option v-for="cat in categories" :value="cat" :key="cat">
@@ -417,7 +471,7 @@ onMounted(async () => {
         <div class="form-actions">
           <button
             type="button"
-            @click="((showAdd = false), (isEditMode = false))"
+            @click="((showAdd = false), (isEditMode = false), (successMessage = ''))"
             class="cancel-btn"
           >
             Cancel

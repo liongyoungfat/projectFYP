@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS  
 from google import genai
@@ -389,11 +390,11 @@ def get_expenses():
 
         # choose sort field…
         allowed = {
-          'dateTime':       'date_time',
-          'payment_method': 'type',
-          'category':       'category',
-          'amount':         'total',
-          'user_id':        'user_id'
+            'dateTime':       'date_time',
+            'payment_method': 'type',
+            'category':       'category',
+            'amount':         'total',
+            'user_id':        'user_id'
         }
         sort_by = request.args.get('sort_by', 'dateTime')
         db_field = allowed.get(sort_by, 'date_time')
@@ -401,31 +402,27 @@ def get_expenses():
 
         # Pull raw datetime out of MySQL
         sql = f"""
-          SELECT
+        SELECT
             id,
             user_id,
             category,
             total    AS amount,
             `type`   AS payment_method,
             date_time
-          FROM expenses
-          WHERE company_id = %s
-          ORDER BY `{db_field}` {order}
+        FROM expenses
+        WHERE company_id = %s
+        ORDER BY `{db_field}` {order}
         """
         cursor.execute(sql, (company_id,))
         rows = cursor.fetchall()
         cursor.close()
         con.close()
-
-        # Convert Python datetime -> ISO-8601 string
         for r in rows:
-            # e.g. "2025-05-16T14:30:00"
             r['dateTime'] = r.pop('date_time').isoformat()
         return jsonify(rows)
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-
 
 
 @app.route('/api/expenses/available-months', methods=['GET'])
@@ -1082,7 +1079,41 @@ def get_revenues():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/expenses/summary/monthly/raw', methods=['GET'])
+def get_expenses_monthly_raw():
+    try:
+        company_id = request.args.get('company_id')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        if not company_id:
+            return jsonify({'error': 'Missing company_id'}), 400
 
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+        query = """
+        SELECT date_time AS dateTime, total
+        FROM expenses
+        WHERE company_id = %s
+        """
+        params = [company_id]
+        if start_date and end_date:
+            query += " AND date_time BETWEEN %s AND %s"
+            params.extend([start_date, end_date])
+        query += " ORDER BY date_time ASC"
+        cursor.execute(query, tuple(params))
+        rows = cursor.fetchall()
+        cursor.close()
+        con.close()
+        # Convert date_time to ISO string
+        for r in rows:
+            if isinstance(r['dateTime'], (str,)):
+                continue
+            r['dateTime'] = r['dateTime'].isoformat()
+        return jsonify(rows)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+        
 @app.route('/api/createRevenue', methods=['POST'])
 def create_revenue():
     data = request.get_json()

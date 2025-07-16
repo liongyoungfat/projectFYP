@@ -17,6 +17,11 @@ interface RevenueItem {
 
 const revenueChart = ref<HTMLCanvasElement | null>(null)
 const revenueData = ref<RevenueItem[]>([])
+interface ExpenseItem {
+  dateTime: string
+  total: number
+}
+const expenseData = ref<ExpenseItem[]>([])
 const localhost = 'http://localhost:5000/'
 
 const startDate = ref<string>('')
@@ -35,16 +40,22 @@ const showHoverTip = ref(false)
 
 const fetchRevenueData = async () => {
   try {
-    const res = await axios.get(localhost + 'api/revenues', { params: { company_id: companyId } })
-    revenueData.value = res.data
+    const [revRes, expRes] = await Promise.all([
+      axios.get(localhost + 'api/revenues', { params: { company_id: companyId } }),
+      axios.get(localhost + 'api/expenses/summary/monthly/raw', {
+        params: { company_id: companyId },
+      }),
+    ])
+    revenueData.value = revRes.data
+    expenseData.value = expRes.data
     filteredRevenueData.value = [...revenueData.value]
-    // console.log('Fetched revenue data:', revenueData.value)
     await nextTick()
     renderRevenueChart()
   } catch (err) {
-    console.error('Failed to fetch revenue data:', err)
+    console.error('Failed to fetch revenue/expense data:', err)
   }
 }
+
 function getMonthLabel(ym: string) {
   if (!ym) return ''
   return new Date(ym + '-01').toLocaleString('default', { month: 'short', year: '2-digit' })
@@ -79,19 +90,52 @@ const renderRevenueChart = () => {
     window.revenueChartInstance.destroy()
   }
 
-  const monthlyTotals: Record<string, number> = {}
+  // Calculate monthly totals for filtered revenue data
+  const monthlyRevenue: Record<string, number> = {}
   filteredRevenueData.value.forEach((item) => {
     if (!item.dateTime) return
     const dateObj = new Date(item.dateTime)
     const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
-    if (!monthlyTotals[month]) monthlyTotals[month] = 0
-    monthlyTotals[month] += Number(item.amount)
+    if (!monthlyRevenue[month]) monthlyRevenue[month] = 0
+    monthlyRevenue[month] += Number(item.amount)
   })
 
-  const ymList = Object.keys(monthlyTotals).sort()
+  // Calculate monthly totals for expenses (use all expenseData, not filtered by date picker)
+  const monthlyExpenses: Record<string, number> = {}
+  expenseData.value.forEach((item) => {
+    if (!item.dateTime) return
+    const dateObj = new Date(item.dateTime)
+    const month = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`
+    if (!monthlyExpenses[month]) monthlyExpenses[month] = 0
+    monthlyExpenses[month] += Number(item.total)
+  })
+  console.log('monthlu', monthlyExpenses)
+  // Determine the full list of months between startDate and endDate
+  let minDate, maxDate
+  if (startDate.value && endDate.value) {
+    minDate = new Date(startDate.value)
+    minDate.setDate(1)
+    maxDate = new Date(endDate.value)
+    maxDate.setDate(1)
+  } else {
+    // fallback: use min/max from data
+    const allMonths = Object.keys({ ...monthlyRevenue, ...monthlyExpenses })
+    minDate = allMonths.length ? new Date(allMonths[0] + '-01') : new Date()
+    maxDate = allMonths.length ? new Date(allMonths[allMonths.length - 1] + '-01') : new Date()
+  }
+
+  // Generate all months between minDate and maxDate (inclusive)
+  const ymList: string[] = []
+  const d = new Date(minDate)
+  while (d <= maxDate) {
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    ymList.push(ym)
+    d.setMonth(d.getMonth() + 1)
+  }
+
   const labels = ymList.map((m) => getMonthLabel(m))
-  const values = ymList.map((month) => monthlyTotals[month])
-  // console.log('labelsss', labels)
+  const revenueValues = ymList.map((month) => monthlyRevenue[month] || 0)
+  const expenseValues = ymList.map((month) => monthlyExpenses[month] || 0)
 
   window.revenueChartInstance = new Chart(revenueChart.value, {
     type: 'bar',
@@ -100,8 +144,13 @@ const renderRevenueChart = () => {
       datasets: [
         {
           label: 'Revenue (RM)',
-          data: values,
+          data: revenueValues,
           backgroundColor: '#36A2EB',
+        },
+        {
+          label: 'Expenses (RM)',
+          data: expenseValues,
+          backgroundColor: '#f87171',
         },
       ],
     },
@@ -110,7 +159,7 @@ const renderRevenueChart = () => {
       plugins: {
         title: {
           display: true,
-          text: `Monthly Revenue Trend`,
+          text: `Monthly Revenue & Expenses Trend`,
         },
       },
       scales: {

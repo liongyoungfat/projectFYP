@@ -213,8 +213,8 @@ onMounted(() => {
     <div class="full-width-widget">
       <div class="widgets">
         <div class="widgets">
-          <RevenueTrend v-if="widgetVisible.revenue" />
           <ProfitTrend v-if="widgetVisible.profit" />
+          <RevenueTrend v-if="widgetVisible.revenue" />
           <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart" />
           <ExpensePie v-if="widgetVisible.expenses" />
         </div>

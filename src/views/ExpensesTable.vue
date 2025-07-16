@@ -160,7 +160,7 @@ const uploadFile = async (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
   console.log(file)
-
+  isProcessing.value= true
   try {
     const uploadResponse = await axios.post(localhost + 'api/uploadFile?type=expense', formData, {
       headers: {
@@ -183,28 +183,38 @@ const uploadFile = async (file: File) => {
       const extractedData = JSON.parse(jsonString)
 
       console.log('Parsed data:', extractedData)
-      if (extractedData.category == 'Food' || extractedData.category == 'food') {
-        extractedData.category = 'Meals'
+      let dataToUse = extractedData
+      if (Array.isArray(extractedData)) {
+        if (extractedData.length === 0) {
+          errorMessage.value = 'No data extracted from receipt.'
+          return
+        }
+        // Optionally, you could prompt user to select, but for now use the first
+        dataToUse = extractedData[0]
+        successMessage.value = 'Multiple receipts found. Only the first one is used.'
+      }
+      if (dataToUse.category == 'Food' || dataToUse.category == 'food') {
+        dataToUse.category = 'Meals'
       }
       if (
-        extractedData.payment_method == null ||
-        extractedData.payment_method == 'not found' ||
-        !paymentMethods.includes(extractedData.payment_method)
+        dataToUse.payment_method == null ||
+        dataToUse.payment_method == 'not found' ||
+        !paymentMethods.includes(dataToUse.payment_method)
       ) {
-        errorMessage.value = 'Payment method is ' + extractedData.payment_method
+        errorMessage.value = 'Payment method is ' + dataToUse.payment_method
       }
-      extractedData.payment_method = extractedData.payment_method.toLowerCase()
+      dataToUse.payment_method = dataToUse.payment_method ? dataToUse.payment_method.toLowerCase() : ''
       newExpense.value = {
         ...newExpense.value,
-        dateTime: extractedData.dateTime,
-        payment_method: extractedData.payment_method,
-        category: extractedData.category || 'Meals',
-        amount: extractedData.amount,
+        dateTime: dataToUse.dateTime,
+        payment_method: dataToUse.payment_method,
+        category: dataToUse.category || 'Meals',
+        amount: dataToUse.amount,
       }
       console.log('pm', newExpense.value)
-      // successMessage.value =
-      //   'Receipt processed successfully! Please review the extracted data before submit.'
-      return extractedData
+      successMessage.value =
+        'Receipt processed successfully! Please review the extracted data before submit.'
+      return dataToUse
     } else if (processResponse.data.excel_data) {
       // This is an array of summary objects (from backend)
       const summaryArray = processResponse.data.excel_data
@@ -221,6 +231,8 @@ const uploadFile = async (file: File) => {
   } catch (error) {
     console.error('Upload failed:', error)
     errorMessage.value = 'Failed to process receipt. Please try it later.'
+  }finally{
+    isProcessing.value=false
   }
 }
 

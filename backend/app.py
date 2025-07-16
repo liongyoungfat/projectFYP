@@ -1168,6 +1168,34 @@ def delete_revenue():
             cursor.close()
             con.close()
 
+@app.route('/api/expenses/summary/category/year')
+def expense_summary_by_category_year():
+    try:
+        now = datetime.now()
+        year = request.args.get('year', type=int, default=now.year)
+        company_id = request.args.get('company_id')
+
+        if not company_id:
+            return jsonify({"error": "Missing company_id"}), 400
+
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+        query = """
+        SELECT 
+            category,
+            SUM(total) AS total_amount
+        FROM expenses
+        WHERE 
+            YEAR(date_time) = %s AND 
+            company_id = %s
+        GROUP BY category
+        """
+        cursor.execute(query, (year, company_id))
+        result = cursor.fetchall()
+        cursor.close()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

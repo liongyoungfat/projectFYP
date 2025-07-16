@@ -33,6 +33,46 @@ const fetchData = async () => {
   }
 }
 
+const STANDARD_CATEGORIES = [
+  'Meals',
+  'Office Supplies',
+  'Travel',
+  'Transportation',
+  'Inventory',
+  'Marketing',
+  'Utilities',
+]
+
+const categorySummary = ref<{ category: string; total_amount: number }[]>([])
+
+const fetchCategorySummary = async () => {
+  try {
+    const res = await axios.get(localhost + 'api/expenses/summary/category/year', {
+      params: { year: selectedYear.value, company_id: companyId },
+    })
+    // Map API result to a dictionary for fast lookup
+    const apiMap = Object.fromEntries(
+      res.data.map((row: any) => [row.category, Number(row.total_amount)]),
+    )
+    // Build the summary for all standard categories
+    categorySummary.value = STANDARD_CATEGORIES.map((cat) => ({
+      category: cat,
+      total_amount: apiMap[cat] || 0,
+    }))
+  } catch (e) {
+    categorySummary.value = STANDARD_CATEGORIES.map((cat) => ({ category: cat, total_amount: 0 }))
+    console.error('Failed to fetch category summary:', e)
+  }
+}
+
+watch(selectedYear, () => {
+  fetchCategorySummary()
+})
+
+onMounted(() => {
+  fetchCategorySummary()
+})
+
 onMounted(fetchData)
 watch(selectedYear, fetchData)
 
@@ -146,21 +186,37 @@ const exportTaxPDF = () => {
 
       <p class="note">Rates may change; always check official LHDN site.</p>
     </div>
-    <div id="smartTaxAdvisor" class="mt-4 p-3 border rounded bg-light">
-      <h5><i class="bi bi-lightbulb"></i> Smart Tax Advice</h5>
-      <ul id="aiTaxTips">
-        <li>Checking tax law updates...</li>
-      </ul>
+    <div id="categoriesSummary" class="table-container">
+      <h5>Categories Summary</h5>
+      <div v-if="categorySummary.length">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Total (RM)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="cat in categorySummary" :key="cat.category">
+              <td>{{ cat.category }}</td>
+              <td>{{ Number(cat.total_amount).toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="text-muted">No data for this year.</div>
     </div>
-
   </div>
 </template>
 
 <style scoped>
 .tax-container {
-  padding: 20px;
   color: #2c3e50;
+  height: 91vh;
+  padding: 28px 16px 32px 16px;
+  overflow-y: scroll;
 }
+
 
 .page-header {
   display: flex;
@@ -278,6 +334,7 @@ const exportTaxPDF = () => {
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 16px;
 }
 
 .summary {
@@ -290,6 +347,8 @@ const exportTaxPDF = () => {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  margin-top: 10px;
+  text-align: center;
 }
 
 .table th,

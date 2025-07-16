@@ -158,8 +158,8 @@ const uploadFile = async (file: File) => {
         amount: extractedData.amount,
       }
       console.log('pm', newRevenue.value.title)
-      // successMessage.value =
-      //   'Receipt processed successfully! Please review the extracted data before submit.'
+      successMessage.value =
+        'Receipt processed successfully! Please review the extracted data before submit.'
       return extractedData
     } else if (processResponse.data.excel_data) {
       // This is an array of summary objects (from backend)
@@ -319,13 +319,6 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-        <div v-if="successMessage && !isProcessing" class="ai-reminder">
-          <span class="reminder-icon">💡</span>
-          <span class="reminder-text"
-            >{{ successMessage }}<br />Please review and edit the extracted data before
-            submitting.</span
-          >
-        </div>
       </div>
       <div v-else class="empty-state attractive-empty">
         <div class="empty-icon bounce">
@@ -447,15 +440,14 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-bottom: 18px;
 }
 .upload-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 10px;
+  margin-bottom: 2px;
 }
-.upload-btn.attractive-upload-btn {
+.upload-btn {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -475,6 +467,28 @@ onMounted(async () => {
     transform 0.18s;
   will-change: transform, box-shadow;
 }
+
+.attractive-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #6366f1;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 20px;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.13);
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  will-change: transform, box-shadow;
+}
+
 .upload-btn.attractive-upload-btn:hover {
   background: #4338ca;
   color: #fca311;
@@ -498,7 +512,7 @@ onMounted(async () => {
   text-align: center;
   font-size: 2rem;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
   background: linear-gradient(90deg, #6366f1 0%, #fca311 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -510,7 +524,7 @@ onMounted(async () => {
   text-align: center;
   font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: 18px;
+  margin-bottom: 5px;
   background: linear-gradient(90deg, #6366f1 0%, #fca311 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -613,7 +627,7 @@ onMounted(async () => {
 .expenses-title {
   font-size: 20px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   text-align: left;
 }
 
@@ -731,7 +745,7 @@ table {
   background-color: #f8fafc; /* match tax page background */
   border-radius: 12px; /* same rounded corners */
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); /* softer shadow */
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .header-title {

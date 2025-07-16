@@ -27,7 +27,8 @@ const isDragging = ref(false)
 const ocrProcessing = ref(false)
 const receiptPreview = ref(null)
 const isProcessing = ref(false)
-
+const sortBy   = ref<'dateTime'|'payment_method'|'category'|'amount'|'user_id'>('dateTime')
+const sortDesc = ref<boolean>(true)
 
 const defaultExpense = {
   id: 0,
@@ -235,6 +236,8 @@ const uploadFile = async (file: File) => {
     isProcessing.value=false
   }
 }
+
+
 
 const submitExpense = async () => {
   try {

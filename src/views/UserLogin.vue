@@ -23,6 +23,7 @@ const handleLogin = async () => {
       password: password.value,
     })
 
+    // success path
     if (res.data.success) {
       userStore.setUser({
         user_id: res.data.user.id,
@@ -31,25 +32,37 @@ const handleLogin = async () => {
         username: res.data.user.username,
         token: res.data.token,
       })
-
       localStorage.setItem('userRole', res.data.user.role)
       localStorage.setItem('userCompanyId', res.data.user.company_id)
       localStorage.setItem('userId', res.data.user.id)
       localStorage.setItem('userName', res.data.user.username)
-
-      // console.log('Login successful:', res.data.user)
-
       router.push('/dashboard')
     } else {
+      // shouldn't happen, but just in case
+      alert(res.data.message || 'Login failed')
+    }
+
+  } catch (error) {
+    const status = error.response?.status
+    const msg    = error.response?.data?.message
+
+    if (status === 403) {
+      // account exists but inactive
+      alert(msg || 'Your account is inactive. Please contact support.')
+    }
+    else if (status === 401) {
+      // bad credentials
       alert('Invalid credentials')
     }
-  } catch (error) {
-    console.error('Login error:', error)
-    alert('Login failed. Invalid credentials')
+    else {
+      console.error('Login error:', error)
+      alert('Something went wrong. Please try again later.')
+    }
   } finally {
     isLoading.value = false
   }
 }
+
 
 const goToRegister = () => {
   router.push('/register')

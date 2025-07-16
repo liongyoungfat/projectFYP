@@ -2,12 +2,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
+import jsPDF from 'jspdf'
 import html2pdf from 'html2pdf.js'
 import RevenueTrend from '@/components/widgets/RevenueTrend.vue'
 import ExpensePie from '@/components/widgets/ExpensePie.vue'
 import ProfitTrend from '@/components/widgets/ProfitTrend.vue'
 import MonthlyExpensesChart from '@/components/widgets/MonthlyExpensesChart.vue'
 import { useUserStore } from '@/stores/user'
+import BarChart from '@/components/BarChart.vue'
+import { nextTick } from 'vue'
 
 const userStore = useUserStore()
 const companyId = userStore.company_id
@@ -18,6 +21,7 @@ const showForecastModal = ref(false)
 const localhost = 'http://localhost:5000/'
 
 const forecastResponse = ref<ForecastReport | null>(null)
+const forecastChart = ref<HTMLCanvasElement | null>(null)
 const revenueData = ref<RevenueItem[]>([])
 const expensesData = ref<ExpenseItem[]>([])
 
@@ -29,7 +33,8 @@ interface ForecastReport {
   category_analysis: Record<string, string>
   forecast_table: { headers: string[]; rows: any[][] }
   insights: string[]
-  visualization_suggestions: string[]
+  calculation_explanation: string
+  chart_data: Record<string, { date: string; value: number }[]>
 }
 
 interface RevenueItem {
@@ -78,7 +83,7 @@ const generateFinancialReport = async () => {
   try {
     isGenerating.value = true
     const fr = await axios.post(localhost + '/api/ai/generate/forecast')
-    // console.log('fr', fr.data)
+    console.log('fr', fr.data)
     forecastResponse.value = fr.data
     // console.log('fr.value', forecastResponse.value['executive_summary'])
     showForecastModal.value = true
@@ -89,24 +94,74 @@ const generateFinancialReport = async () => {
   }
 }
 
-const exportForecastPDF = () => {
-  const report = document.getElementById('forecast-report-content')
-  if (!report) return
+const chartData = computed<Record<string, { date: string; value: number }[]>>(() => {
+  // if there's no response yet, give me an empty object
+  return forecastResponse.value?.chart_data ?? {}
+})
 
-  // Wait until DOM/render finishes
+const chartSeries = computed(() => {
+  return Object.entries(chartData.value).map(([cat, points]) => ({
+    name: cat,
+    data: points.map((p) => ({ x: p.date, y: p.value })),
+  }))
+})
+
+// Helper to get chart image
+const getChartImage = () => {
+  // Try to find the BarChart canvas
+  const chartContainer = document.getElementById('chart-container')
+  if (!chartContainer) return null
+  const canvas = chartContainer.querySelector('canvas')
+  if (!canvas) return null
+  return canvas.toDataURL('image/png', 1.0)
+}
+
+const chartCategories = computed(() => {
+  // pick x-values from the first series, if it exists
+  const first = chartSeries.value[0]
+  return first ? first.data.map((pt) => pt.x) : []
+})
+
+const exportForecastPDF = async () => {
+  // Use html2pdf.js for WYSIWYG portrait export
+  const reportEl = document.getElementById('forecast-report-content')
+  if (!reportEl) return
+  // Wait for chart to render
+  await nextTick()
   setTimeout(() => {
+    // Replace chart with image for export
+    const chartContainer = document.getElementById('chart-container')
+    if (!chartContainer) return
+    const canvas = chartContainer.querySelector('canvas')
+    if (!canvas) return
+    const imgData = canvas.toDataURL('image/png', 1.0)
+    // Create image element
+    const img = document.createElement('img')
+    img.src = imgData
+    img.style.maxWidth = '100%'
+    img.style.height = '300px'
+    img.style.display = 'block'
+    // Hide the chart canvas
+    canvas.style.display = 'none'
+    chartContainer.appendChild(img)
+    // Export with html2pdf
     html2pdf()
-      .from(report)
+      .from(reportEl)
       .set({
         margin: 0.5,
         filename: 'Financial_Forecast_Report.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true }, // enable CORS for external images if any
+        html2canvas: { scale: 2 },
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       })
       .save()
-  }, 200) // small delay allows Vue to update DOM
+    // Restore chart after export
+    setTimeout(() => {
+      if (img && img.parentNode) img.parentNode.removeChild(img)
+      canvas.style.display = 'block'
+    }, 1000)
+  }, 1000)
 }
 
 onMounted(() => {
@@ -172,6 +227,18 @@ onMounted(() => {
             </ul>
 
             <div class="pdf-page-break"></div>
+            <div id="chart-container" class="landscape-page">
+              <h4>Visualisation</h4>
+              <BarChart
+                v-if="chartSeries.length"
+                :series="chartSeries"
+                :categories="chartCategories"
+              />
+              <!-- Chart image will be injected for export -->
+            </div>
+            <div class="pdf-page-break"></div>
+            <h4>Why These Numbers?</h4>
+            <p>{{ forecastResponse.calculation_explanation }}</p>
             <h4>Forecast Table</h4>
             <table>
               <thead>
@@ -190,19 +257,8 @@ onMounted(() => {
 
             <div class="pdf-page-break"></div>
             <h4>Insights</h4>
-            <ul>
+            <ul class="insights">
               <li v-for="insight in forecastResponse.insights" :key="insight">{{ insight }}</li>
-            </ul>
-
-            <div class="pdf-page-break"></div>
-            <h4>Visualization Suggestions</h4>
-            <ul>
-              <li
-                v-for="suggestion in forecastResponse.visualization_suggestions"
-                :key="suggestion"
-              >
-                {{ suggestion }}
-              </li>
             </ul>
           </div>
         </div>
@@ -555,6 +611,38 @@ h2 {
 }
 
 @media print {
+  @page portrait {
+    size: A4 portrait;
+  }
+  @page landscape {
+    size: A4 landscape;
+  }
+
+  @page {
+    @top-left {
+      content: counter(page);
+    }
+  }
+
+  .landscape-page {
+    page: landscape;
+    break-before: page;
+    break-after: page;
+  }
+  #chart-container {
+    max-width: 500px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  #chart-container canvas {
+    max-width: 100% !important;
+    height: 300px !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -573,7 +661,6 @@ h2 {
   }
 }
 
-/* For html2pdf.js to honor it, you can also use: */
 .no-pdf {
   display: none !important;
 }
@@ -587,9 +674,40 @@ h2 {
   color: #e74c3c;
   font-weight: bold;
 }
-</style>
 
-@keyframes jump { 0%, 100% { transform: translateY(0); } 20% { transform: translateY(-8px); } 40% {
-transform: translateY(0); } 60% { transform: translateY(-6px); } 80% { transform: translateY(0); } }
-.jumping-text { display: inline-block; animation: jump 1.2s infinite; font-weight: 600;
-letter-spacing: 0.5px; }
+.insights,
+.recommendations {
+  margin: 1em 0;
+  padding-left: 1.5em;
+}
+.insights li,
+.recommendations li {
+  margin-bottom: 0.5em;
+  list-style-type: disc;
+}
+
+@keyframes jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-8px);
+  }
+  40% {
+    transform: translateY(0);
+  }
+  60% {
+    transform: translateY(-6px);
+  }
+  80% {
+    transform: translateY(0);
+  }
+}
+.jumping-text {
+  display: inline-block;
+  animation: jump 1.2s infinite;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+</style>

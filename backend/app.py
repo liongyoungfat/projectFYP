@@ -68,20 +68,37 @@ def create_company():
     if not name or not industry or not address:
         return jsonify({"success": False, "message": "Missing required fields"}), 400
 
+    con = get_db_connection()
+    cursor = con.cursor()
+
+    # 1) Check for existing name
+    cursor.execute("SELECT 1 FROM companies WHERE name = %s", (name,))
+    if cursor.fetchone():
+        cursor.close()
+        con.close()
+        return jsonify({
+            "success": False,
+            "message": f"Company with name '{name}' already exists."
+        }), 409
+
     try:
-        con = get_db_connection()
-        cursor = con.cursor()
+        # 2) Safe to insert
         cursor.execute(
             "INSERT INTO companies (name, industry, address) VALUES (%s, %s, %s)",
             (name, industry, address)
         )
         company_id = cursor.lastrowid
         con.commit()
+        return jsonify({"success": True, "company_id": company_id}), 201
+
+    except Exception as e:
+        con.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    finally:
         cursor.close()
         con.close()
-        return jsonify({"success": True, "company_id": company_id}), 201
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+
 
 
 @app.route('/api/register', methods=['POST'])
@@ -364,22 +381,42 @@ def update_user():
 @app.route('/api/expenses')
 def get_expenses():
     try:
-        con= get_db_connection()
-        cursor = con.cursor(dictionary=True) 
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
         company_id = request.args.get('company_id')
-
         if not company_id:
             return jsonify({"error": "Missing company_id"}), 400
-        
-        query = """
-        SELECT id, date_time AS dateTime, type AS payment_method, user_id, category, total AS amount
+
+        # Get sorting params from querystring
+        sort_by = request.args.get('sort_by', 'dateTime')
+        order = request.args.get('order', 'desc').lower()
+        # Map client‐side fields to actual DB columns
+        allowed_sort_fields = {
+            'dateTime':     'date_time',
+            'payment_method': 'type',
+            'category':     'category',
+            'amount':       'total',
+            'user_id':      'user_id'
+        }
+        db_field = allowed_sort_fields.get(sort_by, 'date_time')
+        sql_order = 'ASC' if order == 'asc' else 'DESC'
+
+        query = f"""
+        SELECT
+          id,
+          date_time   AS dateTime,
+          type        AS payment_method,
+          user_id,
+          category,
+          total       AS amount
         FROM expenses
         WHERE company_id = %s
-        ORDER BY date_time DESC
+        ORDER BY {db_field} {sql_order}
         """
         cursor.execute(query, (company_id,))
         expenses = cursor.fetchall()
         cursor.close()
+        con.close()
         return jsonify(expenses)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -774,23 +811,30 @@ def generate_forecast():
         - Key spending patterns and anomalies.
         2. Category Analysis:
         - If data is sufficient, provide a clear 6-month trend and forecast in simple business language.
-        - If data is insufficient, state: "No reliable forecast for [Category] due to limited data. Please input more records for better prediction."
-        - Remind the user if any category has insufficient data in the "category_analysis".
+        - If data is insufficient for any category, *do not* repeat a full sentence under each one.  
+            Instead, at the very end of **category_analysis**, include one line:
+              **Reminder:*) The following categories have insufficient data for reliable prediction: [list them].  
+                Please input more records for better accuracy.(e.g. Insuffiecient data reminder(bold):...)
+        - For each category, provide a 2-3 sentence explanation of *why* the forecast behaves as it does (e.g. seasonal peaks, inflation, business growth).
+        - Give 2 actionable, budget-level recommendations based on the above forecasts in sentences.
         3. Forecast Table:
         - use the numbers above
-        - Show category, date, 'Forecast Amount (RM)', 'Minimum Estimate (RM)', 'Maximum Estimate (RM)' as columns.
+        - Show category, date, 'Forecast Amount (RM)', "Estimate Range (RM)" as columns.
         - Do NOT use technical terms like yhat; use business terms as above.
         - All numbers must show 'RM' before the value (e.g., RM 2,000.00).
-        - In the "forecast_table", include all categories—even those with insufficient data. For insufficient data categories, fill their forecast values as "Insufficient Data".
-        - All table headers must be: ["Category", "Date", "Forecast Amount (RM)", "Minimum Estimate (RM)", "Maximum Estimate (RM)"].
+        - In the "forecast_table", include all categories—even those with insufficient data. For insufficient data categories, fill Forecast Amount and Estimate Range as "Insufficient Data".
+        - All table "headers" must be: ["Category", "Date", "Forecast Amount (RM)", "Estimate Range (RM)"]
         - Do **not** use technical terms like yhat, yhat_lower, or yhat_upper. Use only the above headers in business language.
-        4. Actionable Insights:
+        4. Calculation Explanation:
+        - After the table, include a 1–2 sentence note on how you derived and calculated:
+          * Forecast Amount (RM)  
+          * "Estimate Range (RM)
+        (Hint: point estimate vs. confidence interval.)
+        5. Actionable Insights:
         - Top 3 cost-saving opportunities (plain text, no bold).
         - Budget risk assessment.
         - Recommended adjustments.
         - list of actionable insights
-        5. Visualization Suggestions:
-        - Recommended chart types for each insight (plain text, no bold).
 
         **Instructions:**
         1. All monetary values must start with RM and use comma as thousands separator (e.g., RM 12,000.00).
@@ -807,60 +851,27 @@ def generate_forecast():
             "executive_summary": string,
             "category_analysis": {{ "Category1": string, ... }},
             "forecast_table": {{ "headers": [], "rows": [] }},
+            "calculation_explanation": string, 
             "insights": [string, string, ...],
-            "visualization_suggestions": [string, ...]
         """
-
-        # structured_data = {}
-        # for row in historical_data:
-        #     year = row['year']
-        #     month = row['month']
-        #     category = row['category']
-        #     amount = float(row['total'])
-        #     if year not in structured_data:
-        #         structured_data[year] = {}
-        #     if month not in structured_data[year]:
-        #         structured_data[year][month] = {'total': 0, 'categories': {}}
-        #     structured_data[year][month]['categories'][category] = amount
-        #     structured_data[year][month]['total'] += amount
-        # # Get current date info
-        # current_year = datetime.now().year
-        # current_month = datetime.now().strftime('%B')
-        # # Prepare categories list
-        # categories = list(set(row['category'] for row in historical_data))
-        # # Build AI prompt
-        # prompt = f"""
-        # Act as a senior financial analyst. Generate a comprehensive forecast report based on this historical expense data:
-        # **REPORT REQUIREMENTS**
-        # 1. **Executive Summary**:
-        #    - 3-sentence overview of financial health
-        #    - Key spending patterns and anomalies
-        # 2. **Category Analysis**:
-        #    {', '.join(categories)}
-        #    - For each category: 6-month trend analysis + forecast
-        # 3. **Forecast Projections**:
-        #    - Next 3 months predictions (table format)
-        #    - 6-month outlook with confidence intervals
-        #    - Include both total and category breakdowns
-        # 4. **Actionable Insights**:
-        #    - Top 3 cost-saving opportunities
-        #    - Budget risk assessment
-        #    - Recommended adjustments
-        # 5. **Visualization Suggestions**:
-        #    - Recommended chart types for each insight
-        #    - How to visualize forecast vs actuals
-        # **ANALYSIS PARAMETERS**
-        # - Current period: {current_month} {current_year}
-        # - Apply Holt-Winters forecasting (alpha=0.8, beta=0.15, gamma=0.1)
-        # - Consider 8% annual inflation rate
-        # - Factor in seasonal trends (e.g., higher travel in Dec)
-        # - Account for business growth projections
-
-        # """
-        # Generate content
         response = model.generate_content(prompt)
+
+        # sum up each category’s 6-month yhat
+        totals = {cat: sum(r["yhat"] for r in recs) for cat, recs in forecasts.items()}
+        # pick the 2 biggest
+        top2 = sorted(totals, key=totals.get, reverse=True)[:2]
+        # build a small chart payload
+        chart_data = {
+        cat: [
+            {"date": rec["ds"].strftime("%b %Y"), "value": rec["yhat"]}
+            for rec in forecasts[cat]
+        ]
+        for cat in top2
+        }
+
         try:
             report = extract_json(response.text)
+            report["chart_data"] = chart_data
             return jsonify(report)
         except Exception as e:
             print('Error parsing AI response:', e)

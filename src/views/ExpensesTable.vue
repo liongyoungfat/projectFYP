@@ -27,7 +27,7 @@ const isDragging = ref(false)
 const ocrProcessing = ref(false)
 const receiptPreview = ref(null)
 const isProcessing = ref(false)
-const sortBy   = ref<'dateTime'|'payment_method'|'category'|'amount'|'user_id'>('dateTime')
+const sortBy = ref<'dateTime' | 'payment_method' | 'category' | 'amount' | 'user_id'>('dateTime')
 const sortDesc = ref<boolean>(true)
 
 const defaultExpense = {
@@ -67,16 +67,39 @@ const categories = [
 
 const localhost = 'http://localhost:5000/'
 
-const getExpenses = async () => {
+async function getExpenses() {
   try {
-    const res = await axios.get(localhost + 'api/expenses', {
-      params: { company_id: companyId },
+    const { data } = await axios.get(localhost + 'api/expenses', {
+      params: {
+        company_id: companyId,
+        sort_by: sortBy.value,
+        order: sortDesc.value ? 'desc' : 'asc',
+      },
     })
-    expenses.value = res.data as Expense[]
-    console.log('expenses val', expenses.value)
-  } catch (error) {
-    console.error('Failed to load expenses:', error)
+    expenses.value = data
+    console.log('expense', expenses.value)
+  } catch (e) {
+    console.error('API Error fetching expenses:', e)
   }
+}
+
+// toggle sort field / direction
+function toggleSort(field: typeof sortBy.value) {
+  if (sortBy.value === field) {
+    sortDesc.value = !sortDesc.value
+  } else {
+    sortBy.value = field
+    sortDesc.value = false
+  }
+  getExpenses()
+}
+
+function formatDate(dt: string) {
+  const d = new Date(dt)
+  if (isNaN(d.getTime())) return 'Invalid Date'
+  return (
+    d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  )
 }
 
 const formValid = computed(() => {
@@ -161,7 +184,7 @@ const uploadFile = async (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
   console.log(file)
-  isProcessing.value= true
+  isProcessing.value = true
   try {
     const uploadResponse = await axios.post(localhost + 'api/uploadFile?type=expense', formData, {
       headers: {
@@ -204,7 +227,9 @@ const uploadFile = async (file: File) => {
       ) {
         errorMessage.value = 'Payment method is ' + dataToUse.payment_method
       }
-      dataToUse.payment_method = dataToUse.payment_method ? dataToUse.payment_method.toLowerCase() : ''
+      dataToUse.payment_method = dataToUse.payment_method
+        ? dataToUse.payment_method.toLowerCase()
+        : ''
       newExpense.value = {
         ...newExpense.value,
         dateTime: dataToUse.dateTime,
@@ -232,12 +257,10 @@ const uploadFile = async (file: File) => {
   } catch (error) {
     console.error('Upload failed:', error)
     errorMessage.value = 'Failed to process receipt. Please try it later.'
-  }finally{
-    isProcessing.value=false
+  } finally {
+    isProcessing.value = false
   }
 }
-
-
 
 const submitExpense = async () => {
   try {
@@ -309,18 +332,18 @@ const deleteExpense = async (expenseId: number) => {
   }
 }
 
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('en-GB', {
-    timeZone: 'Asia/Kuala_Lumpur',
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
-}
+// const formatDate = (dateStr: string) => {
+//   return new Date(dateStr).toLocaleString('en-GB', {
+//     timeZone: 'Asia/Kuala_Lumpur',
+//     weekday: 'short',
+//     year: 'numeric',
+//     month: 'short',
+//     day: 'numeric',
+//     hour: '2-digit',
+//     minute: '2-digit',
+//     second: '2-digit',
+//   })
+// }
 
 onMounted(async () => {
   try {
@@ -352,14 +375,35 @@ onMounted(async () => {
               <thead>
                 <tr>
                   <th style="width: 16.66%">No</th>
-                  <th style="width: 16.66%">Date</th>
-                  <th style="width: 16.66%">Payment Method</th>
-                  <th style="width: 16.66%">Category</th>
-                  <th style="width: 16.66%">Amount (RM)</th>
+                  <th style="width: 16.66%" class="sortable" @click="toggleSort('dateTime')">
+                    Date
+                    <span v-if="sortBy === 'dateTime'">
+                      {{ sortDesc ? '↓' : '↑' }}
+                    </span>
+                  </th>
+                  <th style="width: 16.66%" class="sortable" @click="toggleSort('payment_method')">
+                    Payment Method
+                    <span v-if="sortBy === 'payment_method'">
+                      {{ sortDesc ? '↓' : '↑' }}
+                    </span>
+                  </th>
+                  <th style="width: 16.66%" class="sortable" @click="toggleSort('category')">
+                    Category
+                    <span v-if="sortBy === 'category'">
+                      {{ sortDesc ? '↓' : '↑' }}
+                    </span>
+                  </th>
+                  <th style="width: 16.66%" class="sortable" @click="toggleSort('amount')">
+                    Amount (RM)
+                    <span v-if="sortBy === 'amount'">
+                      {{ sortDesc ? '↓' : '↑' }}
+                    </span>
+                  </th>
                   <th style="width: 16.66%">Action</th>
                 </tr>
               </thead>
             </table>
+
             <div class="table-scroll-body">
               <table class="expenses-table">
                 <tbody>
@@ -368,7 +412,7 @@ onMounted(async () => {
                     <td style="width: 16.66%">{{ formatDate(expense.dateTime) }}</td>
                     <td style="width: 16.66%">{{ expense.payment_method }}</td>
                     <td style="width: 16.66%">{{ expense.category }}</td>
-                    <td style="width: 16.66%">{{ expense.amount.toFixed(2) }}</td>
+                    <td style="width: 16.66%">{{ expense.amount }}</td>
                     <td style="width: 16.66%">
                       <button @click="editExpenses(expense)" class="edit-button">Edit</button>
                       <button @click="deleteExpense(expense.id)" class="delete-button">
@@ -615,6 +659,11 @@ onMounted(async () => {
   width: 100%;
   border-collapse: collapse;
   background-color: white;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
 }
 
 .table-scroll-body {

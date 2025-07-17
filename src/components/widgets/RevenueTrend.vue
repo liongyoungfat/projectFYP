@@ -215,7 +215,7 @@ onMounted(fetchRevenueData)
 <template>
   <div class="dashboard-chart">
     <div class="chart-toolbar">
-      <h3 class="chart-title">📊 Revenue Over Time</h3>
+      <h3 class="chart-title">📊 Revenue vs Expenses Over Time</h3>
 
       <div class="toolbar-actions">
         <div class="date-button-wrapper" @mouseleave="showHoverTip = false">

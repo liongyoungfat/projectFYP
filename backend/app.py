@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS  
 from google import genai
@@ -118,16 +117,36 @@ def register_user():
         con = get_db_connection()
         cursor = con.cursor()
 
-        # Auto-insert status = 'active'
+        # 1) Duplicate‐username check
+        cursor.execute("SELECT 1 FROM users WHERE username = %s", (username,))
+        if cursor.fetchone():
+            cursor.close()
+            con.close()
+            return (
+                jsonify({
+                  "success": False,
+                  "message": f"Username '{username}' already exists."
+                }),
+                409
+            )
+
+        # 2) Determine default status
+        status = 'active' if role == 'admin' else 'inactive'
+
+        # 3) Safe to insert
         cursor.execute(
-            "INSERT INTO users (username, email, password, role, status, company_id) VALUES (%s, %s, %s, %s, 'active', %s)",
-            (username, email, password, role, company_id)
+            "INSERT INTO users (username, email, password, role, status, company_id) "
+            "VALUES (%s, %s, %s, %s, %s, %s)",
+            (username, email, password, role, status, company_id)
         )
         con.commit()
+
         cursor.close()
         con.close()
         return jsonify({"success": True}), 201
+
     except Exception as e:
+        # any other DB errors
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/login', methods=['POST'])
@@ -449,6 +468,30 @@ def get_available_months():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/revenues/available-months', methods=['GET'])
+def get_revenues_available_months():
+    try:
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+
+        query = """
+        SELECT 
+            DISTINCT YEAR(date_time) AS year,
+            MONTH(date_time) AS month
+        FROM revenues
+        ORDER BY year DESC, month ASC
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        cursor.close()
+        con.close()
+
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/companies/threshold')
 def get_threshold():
@@ -734,6 +777,37 @@ def monthly_expense_trends():
         } for m in range(1, 13)]
         
         return jsonify(full_year)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/revenues/summary/category')
+def revenue_summary_by_category():
+    try:
+        now = datetime.now()
+        year = request.args.get('year', type=int, default=now.year)
+        month = request.args.get('month', type=int, default=now.month)
+        company_id = request.args.get('company_id')
+
+        if not company_id:
+            return jsonify({"error": "Missing company_id"}), 400
+
+        con = get_db_connection()
+        cursor = con.cursor(dictionary=True)
+        query = """
+        SELECT 
+            category,
+            SUM(amount) AS total_amount
+        FROM revenues
+        WHERE 
+            YEAR(date_time) = %s AND 
+            MONTH(date_time) = %s AND
+            company_id = %s
+        GROUP BY category
+        """
+        cursor.execute(query, (year, month, company_id))
+        result = cursor.fetchall()
+        cursor.close()
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

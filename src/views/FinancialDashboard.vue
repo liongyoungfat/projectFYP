@@ -6,6 +6,7 @@ import jsPDF from 'jspdf'
 import html2pdf from 'html2pdf.js'
 import RevenueTrend from '@/components/widgets/RevenueTrend.vue'
 import ExpensePie from '@/components/widgets/ExpensePie.vue'
+import RevenuePie from '@/components/widgets/RevenuePie.vue'
 import ProfitTrend from '@/components/widgets/ProfitTrend.vue'
 import MonthlyExpensesChart from '@/components/widgets/MonthlyExpensesChart.vue'
 import { useUserStore } from '@/stores/user'
@@ -50,6 +51,7 @@ interface ExpenseItem {
 const widgetVisible = ref({
   revenue: true,
   expenses: true,
+  revenuePie: true,
   profit: true,
   monthlyExpensesChart: true,
 })
@@ -180,8 +182,11 @@ onMounted(() => {
             Select Widgets {{ showWidgetDropdown ? '▴' : '▾' }}
           </button>
           <div v-if="showWidgetDropdown" class="dropdown-menu">
-            <label> <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend </label>
             <label> <input type="checkbox" v-model="widgetVisible.profit" /> Profit Trend </label>
+            <label> <input type="checkbox" v-model="widgetVisible.revenue" /> Revenue Trend </label>
+            <label>
+              <input type="checkbox" v-model="widgetVisible.revenuePie" /> Revenue Pie
+            </label>
             <label>
               <input type="checkbox" v-model="widgetVisible.monthlyExpensesChart" /> Monthly
               Expenses
@@ -271,6 +276,7 @@ onMounted(() => {
         <div class="widgets">
           <ProfitTrend v-if="widgetVisible.profit" />
           <RevenueTrend v-if="widgetVisible.revenue" />
+          <RevenuePie v-if="widgetVisible.revenuePie" />
           <MonthlyExpensesChart v-if="widgetVisible.monthlyExpensesChart" />
           <ExpensePie v-if="widgetVisible.expenses" />
         </div>

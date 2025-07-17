@@ -26,11 +26,36 @@ const routes = [
     path: '/',
     component: AuthLayout,
     children: [
-      { path: 'dashboard', name: 'FinancialDashboard', component: Dashboard, meta: { title: 'Financial Dashboard' }},
-      { path: 'expenses', name: 'ExpensesTable', component: Expenses, meta: { title: 'Expenses Table' } },
-      { path: 'revenue', name: 'RevenueTable', component: Revenue, meta: { title: 'Revenue Table' } },
-      { path: 'tax', name: 'TaxPage', component: TaxPage, meta: { title: 'Tax Management' } },
-      { path: 'staff', name: 'ManageStaff', component: ManageStaff, meta: { title: 'Staff Management' } },
+      {
+        path: 'dashboard',
+        name: 'FinancialDashboard',
+        component: Dashboard,
+        meta: { title: 'Financial Dashboard', requiresAuth: true },
+      },
+      {
+        path: 'expenses',
+        name: 'ExpensesTable',
+        component: Expenses,
+        meta: { title: 'Expenses Table', requiresAuth: true },
+      },
+      {
+        path: 'revenue',
+        name: 'RevenueTable',
+        component: Revenue,
+        meta: { title: 'Revenue Table', requiresAuth: true },
+      },
+      {
+        path: 'tax',
+        name: 'TaxPage',
+        component: TaxPage,
+        meta: { title: 'Tax Management', requiresAuth: true },
+      },
+      {
+        path: 'staff',
+        name: 'ManageStaff',
+        component: ManageStaff,
+        meta: { title: 'Staff Management', requiresAuth: true },
+      },
     ],
   },
 ]
@@ -40,14 +65,19 @@ const router = createRouter({
   routes,
 })
 
-// router.beforeEach((to, from, next) => {
-//   const token = localStorage.getItem('token')
-
-//   if (to.path !== '/' && to.path !== '/login' && !token) {
-//     next('/') // 🔒 Redirect to login if not authenticated
-//   } else {
-//     next() // ✅ Allow navigation
-//   }
-// })
+router.beforeEach((to, from, next) => {
+  const authToken = localStorage.getItem('authToken')
+  // If route requires auth and no token, redirect to login
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    if (!authToken) {
+      return next('/login')
+    }
+  }
+  // If already logged in and trying to access login/register, redirect to dashboard
+  if ((to.path === '/login' || to.path === '/register') && authToken) {
+    return next('/dashboard')
+  }
+  next()
+})
 
 export default router

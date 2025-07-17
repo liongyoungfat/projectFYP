@@ -18,6 +18,19 @@ interface Expense {
 }
 
 const expenses = ref<Expense[]>([])
+const searchQuery = ref('')
+const filteredExpenses = computed(() => {
+  if (!searchQuery.value.trim()) return expenses.value
+  const q = searchQuery.value.trim().toLowerCase()
+  return expenses.value.filter((e) => {
+    return (
+      formatDate(e.dateTime).toLowerCase().includes(q) ||
+      e.payment_method.toLowerCase().includes(q) ||
+      e.category.toLowerCase().includes(q) ||
+      String(e.amount).toLowerCase().includes(q)
+    )
+  })
+})
 const showModal = ref(false)
 const showEditModal = ref(false)
 const isLoading = ref(false)
@@ -369,7 +382,17 @@ onMounted(async () => {
     <div class="expenses-container">
       <div v-if="expenses.length" class="expenses-container">
         <div class="expenses-card">
-          <h3 class="expenses-title">Expenses Table</h3>
+          <div class="expenses-title-row">
+            <h3 class="expenses-title">Expenses Table</h3>
+            <div class="search-bar-container">
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="search-bar"
+                placeholder="Search by date, payment method, category, or amount..."
+              />
+            </div>
+          </div>
           <div class="table-container">
             <table class="expenses-table">
               <thead>
@@ -407,7 +430,7 @@ onMounted(async () => {
             <div class="table-scroll-body">
               <table class="expenses-table">
                 <tbody>
-                  <tr v-for="(expense, idx) in expenses" :key="expense.id">
+                  <tr v-for="(expense, idx) in filteredExpenses" :key="expense.id">
                     <td style="width: 16.66%">{{ idx + 1 }}</td>
                     <td style="width: 16.66%">{{ formatDate(expense.dateTime) }}</td>
                     <td style="width: 16.66%">{{ expense.payment_method }}</td>
@@ -642,7 +665,7 @@ onMounted(async () => {
 .expenses-card {
   width: 90%;
   background-color: #fff;
-  max-height: 80%;
+  max-height: 720px;
   border-radius: 10px;
   padding: 30px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -667,7 +690,7 @@ onMounted(async () => {
 }
 
 .table-scroll-body {
-  max-height: 430px;
+  max-height: 360px;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -700,6 +723,40 @@ thead tr {
   background-color: #f4f6f8;
   font-weight: 600;
   color: #333;
+}
+
+.expenses-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.search-bar-container {
+  margin-bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  flex: 1;
+  width: auto;
+}
+.search-bar {
+  width: 50%;
+  min-width: 320px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #d1d5db;
+  font-size: 15px;
+  color: #222;
+  background: #f9fafb;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.04);
+}
+.search-bar:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.13);
+  background-color: #f0f7ff;
 }
 
 .edit-button,

@@ -41,7 +41,20 @@ const loadCompanies = async () => {
   }
 }
 
+function isStrongPassword(password) {
+  // At least 8 chars, one uppercase, one lowercase, one number, one special char
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/.test(
+    password,
+  )
+}
+
 const handleRegister = async () => {
+  if (!isStrongPassword(form.password)) {
+    alert(
+      'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.',
+    )
+    return
+  }
   isLoading.value = true
   try {
     if (form.role === 'admin') {

@@ -82,6 +82,16 @@ const fetchExpenseData = async () => {
 }
 
 const generateFinancialReport = async () => {
+  if (
+    !confirm(
+      'Are you sure you want to generate the financial forecast report? This may take some time and use AI credits.',
+    )
+  ) {
+    return
+  }
+  if (!confirm('This will generate a new AI-powered forecast. Continue?')) {
+    return
+  }
   try {
     isGenerating.value = true
     const fr = await axios.post(localhost + '/api/ai/generate/forecast')
@@ -164,6 +174,13 @@ const exportForecastPDF = async () => {
       canvas.style.display = 'block'
     }, 1000)
   }, 1000)
+}
+
+
+const handleCloseForecastModal = () =>{ 
+  if (!confirm('Are you sure you want to close the forecast report?')) return
+  if (!confirm('Any unsaved file, changes or data will be lost. Continue?')) return
+  showForecastModal.value = false 
 }
 
 onMounted(() => {
@@ -268,7 +285,7 @@ onMounted(() => {
           </div>
         </div>
         <button @click="exportForecastPDF" class="export-btn no-print">Export PDF</button>
-        <button @click="showForecastModal = false" class="close-btn no-print">Close</button>
+        <button @click="handleCloseForecastModal" class="close-btn no-print">Close</button>
       </div>
     </div>
     <div class="full-width-widget">

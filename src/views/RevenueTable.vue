@@ -26,6 +26,21 @@ const sortedRevenues = computed(() => {
   })
 })
 
+const searchQuery = ref('')
+const filteredRevenues = computed(() => {
+  if (!searchQuery.value.trim()) return sortedRevenues.value
+  const q = searchQuery.value.trim().toLowerCase()
+  return sortedRevenues.value.filter((rev) => {
+    return (
+      formatDateKL(rev.dateTime).toLowerCase().includes(q) ||
+      (rev.title && rev.title.toLowerCase().includes(q)) ||
+      (rev.description && rev.description.toLowerCase().includes(q)) ||
+      (rev.category && rev.category.toLowerCase().includes(q)) ||
+      String(rev.amount).toLowerCase().includes(q)
+    )
+  })
+})
+
 function setSort(key: string) {
   if (sortKey.value === key) {
     sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
@@ -277,20 +292,19 @@ const deleteRevenue = async (id: number) => {
 }
 
 function formatDateKL(dateStr: string): string {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr)
   return d.toLocaleString('en-GB', {
-    timeZone:     'UTC',
-    weekday:      'short',   // "Thu"
-    day:          '2-digit', // "17"
-    month:        'short',   // "Jul"
-    year:         'numeric', // "2025"
-    hour:         '2-digit', // "16"
-    minute:       '2-digit', // "01"
-    second:       '2-digit', // "00"
-    hour12:       false
+    timeZone: 'UTC',
+    weekday: 'short', // "Thu"
+    day: '2-digit', // "17"
+    month: 'short', // "Jul"
+    year: 'numeric', // "2025"
+    hour: '2-digit', // "16"
+    minute: '2-digit', // "01"
+    second: '2-digit', // "00"
+    hour12: false,
   })
 }
-
 
 onMounted(async () => {
   try {
@@ -318,7 +332,18 @@ onMounted(async () => {
     <div class="expenses-container">
       <div v-if="revenues.length" class="expenses-container">
         <div class="expenses-card">
-          <h3 class="expenses-title">Revenues Table</h3>
+          <div class="expenses-title-row">
+            <h3 class="expenses-title">Revenues Table</h3>
+            <div class="search-bar-container">
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="search-bar"
+                placeholder="Search by date, title, description, category, or amount..."
+                :title="'Search by date, title, description, category, or amount...'"
+              />
+            </div>
+          </div>
           <div class="table-container">
             <table class="expenses-table fixed-table">
               <thead>
@@ -352,7 +377,7 @@ onMounted(async () => {
             <div class="table-scroll-body">
               <table class="expenses-table">
                 <tbody>
-                  <tr v-for="rev in sortedRevenues" :key="rev.id">
+                  <tr v-for="rev in filteredRevenues" :key="rev.id">
                     <td style="width: 16.66%">{{ formatDateKL(rev.dateTime) }}</td>
                     <td style="width: 16.66%">{{ rev.title }}</td>
                     <td style="width: 16.66%">{{ rev.description }}</td>
@@ -672,7 +697,7 @@ onMounted(async () => {
 .expenses-card {
   width: 90%;
   background-color: #fff;
-  max-height: 80%;
+  max-height: 720px;
   border-radius: 10px;
   padding: 30px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -693,8 +718,43 @@ onMounted(async () => {
   text-align: center;
 }
 
+/* Title and search bar on same row */
+.expenses-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.search-bar-container {
+  margin-bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  flex: 1;
+  width: auto;
+}
+.search-bar {
+  width: 50%;
+  min-width: 320px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #d1d5db;
+  font-size: 15px;
+  color: #222;
+  background: #f9fafb;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.04);
+}
+.search-bar:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.13);
+  background-color: #f0f7ff;
+}
+
 .table-scroll-body {
-  max-height: 430px;
+  max-height: 370px;
   overflow-y: auto;
   overflow-x: hidden;
 }

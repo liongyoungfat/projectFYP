@@ -158,23 +158,31 @@ def login():
     try:
         con = get_db_connection()
         cursor = con.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s AND status = 'active'", (email, password))
+        cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s", (email, password))
         user = cursor.fetchone()
         cursor.close()
         con.close()
 
         if user:
-            return jsonify({
-                "success": True,
-                "token": "abc123",  # Replace with actual token if needed
-                "user": {
-                    "id": user['id'],
-                    "username": user['username'],
-                    "role": user['role'],
-                    "status": user['status'],
-                    "company_id": user['company_id']
-                }
-            })
+            if user['status'] == 'inactive':
+                return jsonify({
+                    "success": False,
+                    "message": "Account inactive. Please ask admin to activate your account."
+                }), 403
+            elif user['status'] == 'active':
+                return jsonify({
+                    "success": True,
+                    "token": "abc123",  # Replace with actual token if needed
+                    "user": {
+                        "id": user['id'],
+                        "username": user['username'],
+                        "role": user['role'],
+                        "status": user['status'],
+                        "company_id": user['company_id']
+                    }
+                })
+            else:
+                return jsonify({"success": False, "message": "Account is inactive, please ask your admin to activate your account."}), 403
         else:
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
 

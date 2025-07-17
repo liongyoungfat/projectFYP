@@ -122,7 +122,14 @@ const startEditing = (id: number) => {
               </button>
             </template>
             <template v-else>
-              <button class="btn edit-btn" @click="startEditing(user.id)">Edit</button>
+              <button
+                class="btn edit-btn"
+                @click="startEditing(user.id)"
+                :disabled="user.id === userStore.user_id"
+                :title="user.id === userStore.user_id ? 'You cannot edit your own account' : ''"
+              >
+                Edit
+              </button>
             </template>
           </td>
         </tr>
@@ -204,13 +211,20 @@ th {
   color: #333;
   font-weight: 600;
 }
-.edit-btn:hover {
+.edit-btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.7;
+  background-color: #eee;
+  color: #aaa;
+  box-shadow: none;
+}
+.edit-btn:hover:enabled {
   background-color: #ddd;
   color: #007bff;
   transform: scale(1.07) translateY(-2px) rotate(-1deg);
   box-shadow: 0 6px 18px rgba(0, 123, 255, 0.13);
 }
-.edit-btn:active {
+.edit-btn:active:enabled {
   transform: scale(0.95) rotate(1deg);
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.13);
 }

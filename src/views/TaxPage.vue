@@ -14,10 +14,10 @@ const expenses = ref<any[]>([])
 const revenues = ref<any[]>([])
 
 const years = computed(() => {
-  const range: number[] = []
-  const current = new Date().getFullYear()
-  for (let y = current; y >= current - 5; y--) range.push(y)
-  return range
+  const expenseYears = expenses.value.map((e) => new Date(e.dateTime).getFullYear())
+  const revenueYears = revenues.value.map((r) => new Date(r.dateTime).getFullYear())
+  const allYears = Array.from(new Set([...expenseYears, ...revenueYears]))
+  return allYears.sort((a, b) => b - a)
 })
 
 const fetchData = async () => {
@@ -216,7 +216,6 @@ const exportTaxPDF = () => {
   padding: 28px 16px 32px 16px;
   overflow-y: scroll;
 }
-
 
 .page-header {
   display: flex;

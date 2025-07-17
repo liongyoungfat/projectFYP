@@ -27,6 +27,8 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('userCompanyId', String(userData.company_id))
     localStorage.setItem('userId', String(userData.user_id))
     localStorage.setItem('username', userData.username)
+    // Set authToken for router guard
+    localStorage.setItem('authToken', userData.token)
   }
 
   const logout = () => {

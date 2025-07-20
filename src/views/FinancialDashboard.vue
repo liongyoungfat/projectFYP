@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted,nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import jsPDF from 'jspdf'
@@ -11,7 +11,6 @@ import ProfitTrend from '@/components/widgets/ProfitTrend.vue'
 import MonthlyExpensesChart from '@/components/widgets/MonthlyExpensesChart.vue'
 import { useUserStore } from '@/stores/user'
 import BarChart from '@/components/BarChart.vue'
-import { nextTick } from 'vue'
 
 const userStore = useUserStore()
 const companyId = userStore.company_id
@@ -94,7 +93,9 @@ const generateFinancialReport = async () => {
   }
   try {
     isGenerating.value = true
-    const fr = await axios.post(localhost + '/api/ai/generate/forecast')
+    const fr = await axios.post(localhost + '/api/ai/generate/forecast',{
+      company_id: companyId,
+    })
     console.log('fr', fr.data)
     forecastResponse.value = fr.data
     // console.log('fr.value', forecastResponse.value['executive_summary'])
@@ -706,7 +707,6 @@ h2 {
 .insights li,
 .recommendations li {
   margin-bottom: 0.5em;
-  list-style-type: disc;
 }
 
 @keyframes jump {

@@ -5,16 +5,13 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from prophet import Prophet
+
 import mysql.connector  
 import calendar 
 import google.generativeai as genai
 import os
-import PyPDF2
 import time
 import pandas as pd
-
-load_dotenv()
-print ('load',load_dotenv())
 
 ALLOWED_EXTENSIONS = {'pdf','png','jpg','jpeg', 'xls', 'xlsx'}
 UPLOAD_FOLDER='/temp'
@@ -32,14 +29,16 @@ db_config={
     'database':'mydatabase'
 }
 
-
 def get_db_connection():
     print ("conn",mysql.connector.connect(**db_config))
     return mysql.connector.connect(**db_config)
 
-api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk"
+
+
+# print ('load',load_dotenv(),os.getenv("GOOGLE_API_KEY"))
+load_dotenv()
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 model = genai.GenerativeModel('gemini-2.5-flash')
-genai.configure(api_key="AIzaSyCwIPyrEioznygRWoq5DlDjEIizNDoMCLk")
 # models = genai.list_models()
 # for m in models:
 #     print(m.name, m.supported_generation_methods)
@@ -822,11 +821,14 @@ def revenue_summary_by_category():
 @app.route('/api/ai/generate/forecast', methods=['POST'])
 def generate_forecast():
     try:
-        user_id = 1 # Implement your auth logic
+        data = request.get_json()
+        company_id = data.get('company_id')
+        if not company_id:
+            return jsonify({"error": "Missing company_id"}), 400
+        
         con = get_db_connection()
         cursor = con.cursor(dictionary=True)
         print('a')
-        # Get 24 months of historical data aggregated by month and category
         query = """
         SELECT 
             YEAR(date_time) AS year,
@@ -834,16 +836,14 @@ def generate_forecast():
             category,
             SUM(total) AS total
         FROM expenses
-        WHERE user_id = %s
+        WHERE company_id = %s
         AND date_time >= DATE_SUB(CURDATE(), INTERVAL 24 MONTH)
         GROUP BY YEAR(date_time), MONTH(date_time), category
         ORDER BY YEAR(date_time) DESC, MONTH(date_time) DESC
         """
-        cursor.execute(query, (user_id,))
+        cursor.execute(query, (company_id,))
         historical_data = cursor.fetchall()
         cursor.close()
-        print ('b')
-        # Structure data for AI processing
         df = pd.DataFrame(historical_data)
         df['ds'] = pd.to_datetime(df['year'].astype(str) + '-' + df['month_num'].astype(str) + '-01')
         df['y'] = df['total']
@@ -877,7 +877,6 @@ def generate_forecast():
             forecast = m.predict(future)
             forecasts[cat] = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(6).to_dict('records')
 
-        # Get current date info
         current_year = datetime.now().year
         current_month = datetime.now().strftime('%B')
 
@@ -917,7 +916,7 @@ def generate_forecast():
           * "Estimate Range (RM)
         (Hint: point estimate vs. confidence interval.)
         5. Actionable Insights:
-        - Top 3 cost-saving opportunities (plain text, no bold).
+        - Top 3 cost-saving opportunities (plain text, bold on important part).
         - Budget risk assessment.
         - Recommended adjustments.
         - list of actionable insights

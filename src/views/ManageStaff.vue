@@ -65,7 +65,7 @@ const startEditing = (id: number) => {
 
 <template>
   <div class="container">
-    <h1>Manage Staff</h1>
+    <h1>🏢👨‍💼👩‍💼 Manage Staff</h1>
     <table>
       <thead>
         <tr>

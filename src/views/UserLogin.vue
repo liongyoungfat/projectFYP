@@ -41,20 +41,17 @@ const handleLogin = async () => {
       // shouldn't happen, but just in case
       alert(res.data.message || 'Login failed')
     }
-
   } catch (error) {
     const status = error.response?.status
-    const msg    = error.response?.data?.message
+    const msg = error.response?.data?.message
 
     if (status === 403) {
       // account exists but inactive
       alert(msg || 'Your account is inactive. Please contact support.')
-    }
-    else if (status === 401) {
+    } else if (status === 401) {
       // bad credentials
       alert('Invalid credentials')
-    }
-    else {
+    } else {
       console.error('Login error:', error)
       alert('Something went wrong. Please try again later.')
     }
@@ -62,7 +59,6 @@ const handleLogin = async () => {
     isLoading.value = false
   }
 }
-
 
 const goToRegister = () => {
   router.push('/register')
@@ -138,7 +134,12 @@ const goToRegister = () => {
 
         <div class="options-row">
           <label><input type="checkbox" /> Remember me</label>
-          <a href="#">Forgot your password?</a>
+          <a
+            href="https://mail.google.com/mail/?view=cm&fs=1&to=liongyeong@gmail.com&su=Password%20Reset%20Request&body=Hi,%20my%20gmail%20is%20[YOUR_EMAIL]%20and%20I%20forget%20my%20password.%20Please%20help%20me%20change%20it."
+            target="_blank"
+          >
+            Forget your password?
+          </a>
         </div>
 
         <button type="submit" class="login-button">Sign in</button>

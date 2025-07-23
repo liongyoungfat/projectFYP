@@ -134,6 +134,7 @@ const downloadTemplate = () => {
 }
 
 const handleBatchUpload = async (event: Event) => {
+  isLoading.value = true
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
@@ -150,9 +151,18 @@ const handleBatchUpload = async (event: Event) => {
     getExpenses()
     alert('Batch upload successful!')
     successMessage.value = 'Batch upload successful!'
-  } catch (err) {
-    console.log('err in line 101', err)
-    errorMessage.value = 'Batch upload failed'
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response && error.response.data) {
+      const msg =
+        error.response.data.message ||
+        error.response.data.error ||
+        `Failed to process file. (${error.response.status})`
+      alert(msg)
+    } else {
+      errorMessage.value = 'Batch upload failed'
+    }
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -167,6 +177,8 @@ const triggerBatchFileInput = () => {
   const input = document.getElementById('batchFile') as HTMLInputElement | null
   if (input) {
     input.click()
+  }else{
+    isLoading.value = false
   }
 }
 
@@ -268,8 +280,15 @@ const uploadFile = async (file: File) => {
       }
     }
   } catch (error) {
-    console.error('Upload failed:', error)
-    errorMessage.value = 'Failed to process receipt. Please try it later.'
+    if (axios.isAxiosError(error) && error.response && error.response.data) {
+      const msg =
+        error.response.data.message ||
+        error.response.data.error ||
+        `Failed to process receipt. (${error.response.status})`
+      alert(msg)
+    } else {
+      errorMessage.value = 'Failed to process receipt. Please try it later.'
+    }
   } finally {
     isProcessing.value = false
   }
@@ -375,7 +394,15 @@ onMounted(async () => {
       <div class="button-group">
         <button @click="downloadTemplate" class="header-btn">Download Template</button>
         <input type="file" id="batchFile" hidden @change="handleBatchUpload" />
-        <button @click="triggerBatchFileInput" class="header-btn">Batch Upload</button>
+        <button
+          @click="triggerBatchFileInput"
+          class="header-btn"
+          :disabled="isLoading"
+          :style="isLoading ? 'opacity:0.6;cursor:not-allowed;' : ''"
+        >
+          <span v-if="isLoading">Processing...</span>
+          <span v-else>Batch Upload</span>
+        </button>
         <button @click="showModal = true" class="header-btn primary-btn">+ New Expense</button>
       </div>
     </div>

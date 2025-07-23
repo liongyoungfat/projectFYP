@@ -75,11 +75,22 @@ const handleRegister = async () => {
       alert('Registered successfully!')
       router.push('/login')
     } else {
-      alert('Registration failed.')
+      // Show backend error message if present
+      const msg = userRes.data.message || userRes.data.error || 'Registration failed.'
+      alert(msg)
     }
   } catch (error) {
     console.error('Registration error:', error)
-    alert('Something went wrong.')
+    // If error is AxiosError and has a response, show backend message
+    if (axios.isAxiosError(error) && error.response && error.response.data) {
+      const msg =
+      error.response.data.message ||
+      error.response.data.error ||
+      `Registration failed. (${error.response.status})`
+      alert(msg)
+    }else {
+      alert('Something went wrong.')
+    }
   } finally {
     isLoading.value = false
   }

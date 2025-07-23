@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted,nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import axios from 'axios'
 import jsPDF from 'jspdf'
@@ -93,7 +93,7 @@ const generateFinancialReport = async () => {
   }
   try {
     isGenerating.value = true
-    const fr = await axios.post(localhost + '/api/ai/generate/forecast',{
+    const fr = await axios.post(localhost + '/api/ai/generate/forecast', {
       company_id: companyId,
     })
     console.log('fr', fr.data)
@@ -177,11 +177,15 @@ const exportForecastPDF = async () => {
   }, 1000)
 }
 
+function formatInsight(insight: string) {
+  // Replace **word** with <strong>word</strong>
+  return insight.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+}
 
-const handleCloseForecastModal = () =>{ 
+const handleCloseForecastModal = () => {
   if (!confirm('Are you sure you want to close the forecast report?')) return
   if (!confirm('Any unsaved file, changes or data will be lost. Continue?')) return
-  showForecastModal.value = false 
+  showForecastModal.value = false
 }
 
 onMounted(() => {
@@ -245,10 +249,9 @@ onMounted(() => {
             <ul>
               <li v-for="(desc, cat) in forecastResponse.category_analysis" :key="cat">
                 <strong>{{ cat }}</strong
-                >: {{ desc }}
+                >: <span v-html="formatInsight(desc)"></span>
               </li>
             </ul>
-
             <div class="pdf-page-break"></div>
             <div id="chart-container" class="landscape-page">
               <h4>Visualisation</h4>
@@ -281,7 +284,11 @@ onMounted(() => {
             <div class="pdf-page-break"></div>
             <h4>Insights</h4>
             <ul class="insights">
-              <li v-for="insight in forecastResponse.insights" :key="insight">{{ insight }}</li>
+              <li
+                v-for="insight in forecastResponse.insights"
+                :key="insight"
+                v-html="formatInsight(insight)"
+              ></li>
             </ul>
           </div>
         </div>

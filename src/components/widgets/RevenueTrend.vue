@@ -77,9 +77,10 @@ const applyDateFilter = () => {
 }
 
 const resetDateFilter = () => {
-  startDate.value = ''
-  endDate.value = ''
+  startDate.value = defaultStartDate
+  endDate.value = defaultEndDate
   filteredRevenueData.value = [...revenueData.value]
+  showDatePicker.value =false
   renderRevenueChart()
 }
 
@@ -254,6 +255,10 @@ onMounted(fetchRevenueData)
           <button class="animated-btn reset-btn" @click="resetDateFilter">Reset</button>
         </div>
       </div>
+    </div>
+
+    <div class="toolbar-secondary" style="justify-content: flex-end">
+      <div class="current-range">Current Range: {{ startDate }} → {{ endDate }}</div>
     </div>
 
     <div id="revenue-chart-container">
@@ -451,6 +456,24 @@ onMounted(fetchRevenueData)
 .animated-btn:hover {
   transform: scale(1.04);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-secondary {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 20px 0;
+  gap: 14px;
+}
+
+.current-range {
+  background: #eef2ff;
+  color: #4338ca;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .no-data-message {

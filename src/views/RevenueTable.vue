@@ -8,6 +8,7 @@ const showAdd = ref(false)
 const revenues = ref<Revenue[]>([])
 const sortKey = ref('dateTime')
 const sortOrder = ref<'asc' | 'desc'>('desc')
+const isLoading = ref(false)
 
 const sortedRevenues = computed(() => {
   const key = sortKey.value
@@ -103,6 +104,7 @@ const downloadTemplate = () => {
 }
 
 const handleBatchUpload = async (event: Event) => {
+  isLoading.value = true
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
@@ -118,8 +120,18 @@ const handleBatchUpload = async (event: Event) => {
     getRevenues()
     successMessage.value = 'Batch upload successful!'
     alert(successMessage.value)
-  } catch (err) {
-    errorMessage.value = `Batch upload failed, ${err}`
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response && error.response.data) {
+      const msg =
+        error.response.data.message ||
+        error.response.data.error ||
+        `Registration failed. (${error.response.status})`
+      alert(msg)
+    } else {
+      alert('Something went wrong.')
+    }
+  }finally{
+    isLoading.value = false
   }
 }
 
@@ -154,6 +166,8 @@ const triggerBatchUpload = () => {
   const input = document.getElementById('batchRevenue') as HTMLInputElement
   if (input) {
     input.click()
+  }else{
+    isLoading.value = false
   }
 }
 
@@ -217,8 +231,15 @@ const uploadFile = async (file: File) => {
       }
     }
   } catch (error) {
-    console.error('Upload failed:', error)
-    errorMessage.value = 'Failed to process receipt. Please try it later.'
+    if (axios.isAxiosError(error) && error.response && error.response.data) {
+      const msg =
+        error.response.data.message ||
+        error.response.data.error ||
+        `Failed to process file. (${error.response.status})`
+      alert(msg)
+    } else {
+      alert('Something went wrong.')
+    }
   } finally {
     isProcessing.value = false
   }
@@ -322,7 +343,15 @@ onMounted(async () => {
       <div class="button-group">
         <button @click="downloadTemplate" class="header-btn">Download Template</button>
         <input type="file" id="batchRevenue" hidden @change="handleBatchUpload" />
-        <button @click="triggerBatchUpload" class="header-btn">Batch Upload</button>
+        <button
+          @click="triggerBatchUpload"
+          class="header-btn"
+          :disabled="isLoading"
+          :style="isLoading ? 'opacity:0.6;cursor:not-allowed;' : ''"
+        >
+          <span v-if="isLoading">Processing...</span>
+          <span v-else>Batch Upload</span>
+        </button>
         <button @click="showAdd = !showAdd" class="header-btn primary-btn">
           {{ showAdd ? 'Cancel' : '+ New Revenue' }}
         </button>

@@ -5,6 +5,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from prophet import Prophet
+from io import BytesIO
 
 import mysql.connector  
 import calendar 
@@ -123,8 +124,20 @@ def register_user():
             con.close()
             return (
                 jsonify({
-                  "success": False,
-                  "message": f"Username '{username}' already exists."
+                    "success": False,
+                    "message": f"Username '{username}' already exists."
+                }),
+                409
+            )
+        print("email",email)
+        cursor.execute("SELECT 1 FROM users WHERE email = %s", (email,))
+        if cursor.fetchone():
+            cursor.close()
+            con.close()
+            return (
+                jsonify({
+                    "success": False,
+                    "message": f"Email '{email}' already exists."
                 }),
                 409
             )
@@ -233,7 +246,7 @@ def upload_file():
             'path': save_path
         }), 200
     else:
-        return jsonify({'error': 'Invalid file type'}), 400 
+        return jsonify({"success": False, "message": "Invalid File Type, only accept 'pdf','png','jpg','jpeg', 'xls', 'xlsx"}), 400 
 
 @app.route('/api/processReceipt', methods=['POST'])
 def process_receipt():
@@ -357,7 +370,7 @@ def process_excel_file(file_path):
 
 @app.route('/api/users')
 def get_users():
-    company_id = request.args.get('company_id')  # <-- Get from query
+    company_id = request.args.get('company_id') 
     if not company_id:
         return jsonify({"error": "Missing company_id"}), 400
 
@@ -575,7 +588,6 @@ def get_expenses_in_period():
         WHERE company_id = %s
         AND date_time BETWEEN %s AND %s
         """
-        
         cursor.execute(query, (company_id, start_date, end_date))
         expenses = cursor.fetchall()
         cursor.close()
@@ -981,16 +993,35 @@ def extract_json(text):
 
 @app.route('/api/template/<string:doc_type>', methods=['GET'])
 def download_template(doc_type):
-    """Return CSV templates for batch uploads."""
-    if doc_type == 'expenses':
-        content = "date_time,type,category,total\n"
-    elif doc_type == 'revenue':
-        content = "title,description,category,amount,date_time\n"
+    if doc_type == 'expenses' or doc_type == 'expenses.xlsx':
+        columns = ['date_time', 'type', 'category', 'total']
+        filename = 'expenses_template.xlsx'
+        data = [{
+            'date_time': '7/1/2023 0:00',
+            'type': 'bank transfer',
+            'category': 'Inventory',
+            'total': 14328.68
+        }]
+        df = pd.DataFrame(data, columns=columns)
+    elif doc_type == 'revenue' or doc_type == 'revenue.xlsx':
+        columns = ['title', 'description', 'category', 'amount', 'date_time']
+        filename = 'revenue_template.xlsx'
+        data = [{
+            'title': 'Online Store',
+            'description':'Monthly Revenue', 
+            'category':'Product Sales', 
+            'amount': 10.01, 
+            'date_time': '7/1/2023 0:00',
+        }]
+        df = pd.DataFrame(data,columns=columns)
     else:
         return jsonify({'error': 'Invalid template type'}), 400
-    response = make_response(content)
-    response.headers['Content-Disposition'] = f'attachment; filename={doc_type}_template.csv'
-    response.mimetype = 'text/csv'
+    output = BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+    response = make_response(output.read())
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    response.mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
 
 
@@ -1007,6 +1038,10 @@ def batch_upload_expenses():
     file = request.files.get('file')
     if not file:
         return jsonify({'error': 'No file provided'}), 400
+    # Only accept Excel files
+    filename = file.filename.lower()
+    if not (filename.endswith('.xlsx') or filename.endswith('.xls')):
+        return jsonify({'error': 'Only Excel files (.xls, .xlsx) are accepted for batch upload.'}), 400
     try:
         df = _read_uploaded_table(file)
     except Exception as e:
@@ -1069,6 +1104,11 @@ def batch_upload_revenue():
     if not file:
         return jsonify({'error': 'No file provided'}), 400
 
+    # Only accept Excel files
+    filename = file.filename.lower()
+    if not (filename.endswith('.xlsx') or filename.endswith('.xls')):
+        return jsonify({'error': 'Only Excel files (.xls, .xlsx) are accepted for batch upload.'}), 400
+    
     # Get company_id from FormData
     company_id = request.form.get('company_id')
     if not company_id:

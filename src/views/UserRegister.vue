@@ -7,7 +7,7 @@ const router = useRouter()
 
 const isLoading = ref(false)
 const role = ref('staff')
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 const form = reactive({
   username: '',
@@ -84,11 +84,11 @@ const handleRegister = async () => {
     // If error is AxiosError and has a response, show backend message
     if (axios.isAxiosError(error) && error.response && error.response.data) {
       const msg =
-      error.response.data.message ||
-      error.response.data.error ||
-      `Registration failed. (${error.response.status})`
+        error.response.data.message ||
+        error.response.data.error ||
+        `Registration failed. (${error.response.status})`
       alert(msg)
-    }else {
+    } else {
       alert('Something went wrong.')
     }
   } finally {

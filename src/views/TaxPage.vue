@@ -7,7 +7,7 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const companyId = userStore.company_id || localStorage.getItem('userCompanyId')
 
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 const selectedYear = ref(new Date().getFullYear())
 
 const expenses = ref<any[]>([])

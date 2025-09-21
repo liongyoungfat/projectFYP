@@ -78,7 +78,7 @@ const categories = [
   'Software',
 ]
 
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 async function getExpenses() {
   try {

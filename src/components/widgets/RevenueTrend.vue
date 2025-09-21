@@ -22,7 +22,7 @@ interface ExpenseItem {
   total: number
 }
 const expenseData = ref<ExpenseItem[]>([])
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
@@ -80,7 +80,7 @@ const resetDateFilter = () => {
   startDate.value = defaultStartDate
   endDate.value = defaultEndDate
   filteredRevenueData.value = [...revenueData.value]
-  showDatePicker.value =false
+  showDatePicker.value = false
   renderRevenueChart()
 }
 

@@ -13,7 +13,7 @@ Chart.register(...registerables)
 
 const profitChart = ref<HTMLCanvasElement | null>(null)
 const profitChartInstance = ref<Chart | null>(null)
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 const revenueData = ref<RevenueItem[]>([])
 const expensesData = ref<ExpenseItem[]>([])

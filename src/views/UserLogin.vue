@@ -18,7 +18,7 @@ const togglePassword = () => {
 const handleLogin = async () => {
   isLoading.value = true
   try {
-    const res = await axios.post('http://localhost:5000/api/login', {
+    const res = await axios.post('http://18.232.124.137:8000/api/login', {
       email: email.value,
       password: password.value,
     })

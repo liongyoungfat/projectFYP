@@ -3,7 +3,7 @@ import axios from 'axios'
 import { onMounted, ref, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 const showAdd = ref(false)
 const revenues = ref<Revenue[]>([])
 const sortKey = ref('dateTime')

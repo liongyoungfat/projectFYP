@@ -9,7 +9,7 @@ Chart.register(...registerables)
 
 const userStore = useUserStore()
 const companyId = userStore.company_id
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 const chartRef = ref<HTMLCanvasElement | null>(null)
 const revenueData = ref<any[]>([])
@@ -17,7 +17,6 @@ const isLoading = ref(false)
 
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
-
 
 const availableDates = ref<{ year: number; month: number }[]>([])
 const selectedYear = ref(currentYear)
@@ -70,19 +69,18 @@ const fetchAvailableDates = async () => {
     params: { company_id: companyId },
   })
   availableDates.value = res.data
-   if (availableYears.value.length > 0) {
+  if (availableYears.value.length > 0) {
     selectedYear.value = availableYears.value.includes(currentYear)
       ? currentYear
       : availableYears.value[0]
 
     const monthsForYear = availableDates.value
-      .filter(item => item.year === selectedYear.value)
-      .map(item => item.month)
+      .filter((item) => item.year === selectedYear.value)
+      .map((item) => item.month)
       .sort((a, b) => b - a)
     selectedMonth.value = monthsForYear[0]
   }
 }
-
 
 const availableYears = computed(() =>
   [...new Set(availableDates.value.map((item) => item.year))].sort((a, b) => b - a),

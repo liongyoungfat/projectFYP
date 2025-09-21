@@ -13,7 +13,7 @@ Chart.register(...registerables)
 
 const monthlyChart = ref<HTMLCanvasElement | null>(null)
 const chartInstance = ref<Chart | null>(null)
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 interface MonthlyDataItem {
   month_name: string

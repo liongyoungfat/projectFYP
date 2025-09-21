@@ -13,7 +13,7 @@ Chart.register(...registerables)
 const categoryChart = ref<HTMLCanvasElement | null>(null)
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 interface CategoryDataItem {
   category: string
@@ -48,17 +48,18 @@ const fetchAvailableDates = async () => {
   })
   availableDates.value = res.data
   if (availableDates.value.length > 0) {
-    const yearsSorted = [...new Set(availableDates.value.map(item => item.year))].sort((a, b) => b - a)
+    const yearsSorted = [...new Set(availableDates.value.map((item) => item.year))].sort(
+      (a, b) => b - a,
+    )
     selectedYear.value = yearsSorted[0]
 
     const monthsForYear = availableDates.value
-      .filter(item => item.year === selectedYear.value)
-      .map(item => item.month)
+      .filter((item) => item.year === selectedYear.value)
+      .map((item) => item.month)
       .sort((a, b) => b - a)
     selectedMonth.value = monthsForYear[0]
   }
 }
-
 
 const availableYears = computed(() =>
   [...new Set(availableDates.value.map((item) => item.year))].sort((a, b) => b - a),

@@ -17,7 +17,7 @@ interface Staff {
 const staff = ref<Staff[]>([])
 const editingId = ref<number | null>(null)
 const originalUser = ref<Staff | null>(null)
-const localhost = 'http://localhost:5000/'
+const localhost = 'http://18.232.124.137:8000/'
 
 const fetchStaff = async () => {
   const res = await axios.get(localhost + 'api/users', {

@@ -96,12 +96,19 @@ const generateFinancialReport = async () => {
     const fr = await axios.post(localhost + '/api/ai/generate/forecast', {
       company_id: companyId,
     })
+    console.log('fr', fr)
     console.log('fr', fr.data)
     forecastResponse.value = fr.data
-    // console.log('fr.value', forecastResponse.value['executive_summary'])
+    console.log("fr.v",forecastResponse.value)
+    console.log('fr.value', forecastResponse.value['executive_summary'])
     showForecastModal.value = true
+    console.log('show:',showForecastModal.value)
+
+
   } catch (err) {
     console.error('Failed to generate report', err)
+    const msg = err.response?.data?.error || "An unexpected error occurred";
+    alert(`Forecast Error: ${msg}`);
   } finally {
     isGenerating.value = false
   }

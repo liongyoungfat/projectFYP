@@ -13,6 +13,10 @@ import google.generativeai as genai
 import os
 import time
 import pandas as pd
+import re, json
+
+import boto3
+import json
 
 ALLOWED_EXTENSIONS = {'pdf','png','jpg','jpeg', 'xls', 'xlsx'}
 UPLOAD_FOLDER='/temp'
@@ -40,6 +44,7 @@ def get_db_connection():
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 model = genai.GenerativeModel('gemini-2.5-flash')
+print(os.getenv("GOOGLE_API_KEY"))
 # models = genai.list_models()
 # for m in models:
 #     print(m.name, m.supported_generation_methods)
@@ -201,15 +206,6 @@ def login():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/ai',methods=['POST'])
-def get_ai():
-    client = genai.Client(api_key)
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents="Explain how AI works in a few words and give example",
-    )
-    print(response.text)
-    return jsonify (response.text)
 
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -248,6 +244,38 @@ def upload_file():
     else:
         return jsonify({"success": False, "message": "Invalid File Type, only accept 'pdf','png','jpg','jpeg', 'xls', 'xlsx"}), 400 
 
+client = boto3.client("bedrock-runtime", region_name="us-east-1")
+
+model_id = "amazon.nova-pro-v1:0"
+
+prompt = {
+    "messages": [
+        {
+            "role": "user",
+            "content": [
+                {"text": "can you extract data from raw file for me?"}
+            ]
+        }
+    ],
+    "inferenceConfig": {
+        "maxTokens": 200,
+        "temperature": 0.7,
+        "topP": 0.9
+    }
+}
+
+response = client.invoke_model(
+    modelId=model_id,
+    body=json.dumps(prompt)
+)
+
+result = json.loads(response["body"].read())
+print("AI reply:", result["output"]["message"]["content"][0]["text"])
+
+import base64
+from PyPDF2 import PdfReader
+
+
 @app.route('/api/processReceipt', methods=['POST'])
 def process_receipt():
     try:
@@ -269,19 +297,8 @@ def process_receipt():
         
         if not os.path.exists(abs_path):
             return jsonify({'error': 'File not found'}), 404
-
-        # Read file and process with Gemini
-        with open(abs_path, 'rb') as f:
-            document_content = f.read()
-
-        if (document_content == b''):
-            return jsonify({'error': 'File is empty'}), 404
-        # Prepare for Gemini
-        text_part = {
-            'mime_type': 'application/pdf',
-            'data': document_content
-        }
-        print ('ss',text_part)
+        reader = PdfReader(abs_path)
+        pdf_text = "\n".join([page.extract_text() for page in reader.pages])
 
         if doc_type == 'revenue':
             prompt = """
@@ -323,13 +340,34 @@ def process_receipt():
             Return ONLY the JSON object, no additional text.
             """
         
-        # # Generate content
-        response = model.generate_content([prompt, text_part])
-        print('ressss',response)
-        # # Parse and return response
+
+        request_body = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"text": prompt + "\n\nHere is the document text:\n" + pdf_text}
+                    ]
+                }
+            ],
+            "inferenceConfig": {
+                "maxTokens": 500,
+                "temperature": 0.2,
+                "topP": 0.9
+            }
+        }
+
+        response = client.invoke_model(
+            modelId="amazon.nova-pro-v1:0",
+            body=json.dumps(request_body)
+        )
+
+        result = json.loads(response["body"].read())
+        ai_reply = result["output"]["message"]["content"][0]["text"]
+
         return jsonify({
-            'result': response.text,
-            'file_path': abs_path
+            "result": ai_reply,
+            "file_path": abs_path
         })
     except Exception as e:
         print(f"Error in inline PDF example: {e}")
@@ -857,6 +895,9 @@ def generate_forecast():
         historical_data = cursor.fetchall()
         cursor.close()
         df = pd.DataFrame(historical_data)
+        if df.empty:
+            return jsonify({"error": "No historical data found for this company"}), 404
+
         df['ds'] = pd.to_datetime(df['year'].astype(str) + '-' + df['month_num'].astype(str) + '-01')
         df['y'] = df['total']
 
@@ -979,7 +1020,6 @@ def generate_forecast():
         return jsonify({"error": "Forecast generation failed", "details": str(e)}), 500
     
 
-import re, json
 
 def extract_json(text):
     # Remove markdown code block markers just in case

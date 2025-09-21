@@ -229,8 +229,15 @@ const renderProfitChart = () => {
         },
       },
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Chart rendering error:', err)
+    if (
+      err &&
+      err.message &&
+      err.message.includes("Cannot read properties of null (reading 'save')")
+    ) {
+      alert('A chart rendering error occurred. Please refresh the page to continue.')
+    }
   }
 }
 
@@ -284,7 +291,6 @@ onUnmounted(() => {
   <div class="dashboard-chart">
     <div class="chart-toolbar">
       <h3 class="chart-title">📈 Net Profit Trend</h3>
-
       <div class="toolbar-actions">
         <div class="date-button-wrapper" @mouseleave="showHoverTip = false">
           <button

@@ -126,13 +126,22 @@ const renderRevenueChart = () => {
   }
 
   // Generate all months between minDate and maxDate (inclusive)
-  const ymList: string[] = []
-  const d = new Date(minDate)
-  while (d <= maxDate) {
-    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    ymList.push(ym)
-    d.setMonth(d.getMonth() + 1)
+  // Collect all months with data
+  let ymList = Object.keys({ ...monthlyRevenue, ...monthlyExpenses }).sort()
+
+  // ✅ Filter months by user-selected range
+  if (startDate.value && endDate.value) {
+    const start = new Date(startDate.value)
+    const end = new Date(endDate.value)
+
+    ymList = ymList.filter((m) => {
+      const d = new Date(m + '-01')
+      return d >= start && d <= end
+    })
   }
+
+  // ✅ Remove months with no revenue and no expenses
+  ymList = ymList.filter((m) => (monthlyRevenue[m] || 0) > 0 || (monthlyExpenses[m] || 0) > 0)
 
   const labels = ymList.map((m) => getMonthLabel(m))
   const revenueValues = ymList.map((month) => monthlyRevenue[month] || 0)

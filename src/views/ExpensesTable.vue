@@ -150,7 +150,6 @@ const handleBatchUpload = async (event: Event) => {
     })
     getExpenses()
     alert('Batch upload successful!')
-    successMessage.value = 'Batch upload successful!'
   } catch (error) {
     if (axios.isAxiosError(error) && error.response && error.response.data) {
       const msg =
@@ -159,7 +158,7 @@ const handleBatchUpload = async (event: Event) => {
         `Failed to process file. (${error.response.status})`
       alert(msg)
     } else {
-      errorMessage.value = 'Batch upload failed'
+      alert('Batch upload failed!')
     }
   } finally {
     isLoading.value = false
@@ -177,7 +176,7 @@ const triggerBatchFileInput = () => {
   const input = document.getElementById('batchFile') as HTMLInputElement | null
   if (input) {
     input.click()
-  }else{
+  } else {
     isLoading.value = false
   }
 }
@@ -217,10 +216,11 @@ const uploadFile = async (file: File) => {
       },
     })
     console.log('Extracted data:', uploadResponse.data.path)
-    const filePath = uploadResponse.data.path
+    const s3Key = uploadResponse.data.s3_key
     // 2. Process file with Gemini
     const processResponse = await axios.post(localhost + 'api/processReceipt', {
-      file_path: filePath,
+      type: 'expense',
+      s3_key: s3Key,
     })
     console.log('Gemini response:', processResponse.data)
     if (processResponse.data.result) {
@@ -605,7 +605,6 @@ onMounted(async () => {
         <form @submit.prevent="updateExpense">
           <div class="form-group">
             <label>Date and Time:</label>
-            {{ newExpense.dateTime }}
             <input type="datetime-local" v-model="newExpense.dateTime" required />
           </div>
 

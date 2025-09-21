@@ -130,7 +130,7 @@ const handleBatchUpload = async (event: Event) => {
     } else {
       alert('Something went wrong.')
     }
-  }finally{
+  } finally {
     isLoading.value = false
   }
 }
@@ -166,7 +166,7 @@ const triggerBatchUpload = () => {
   const input = document.getElementById('batchRevenue') as HTMLInputElement
   if (input) {
     input.click()
-  }else{
+  } else {
     isLoading.value = false
   }
 }
@@ -191,10 +191,11 @@ const uploadFile = async (file: File) => {
       },
     })
     console.log('Extracted data:', uploadResponse.data.path)
-    const filePath = uploadResponse.data.path
+    const s3Key = uploadResponse.data.s3_key
     // 2. Process file with Gemini
     const processResponse = await axios.post(localhost + 'api/processReceipt', {
-      file_path: filePath,
+      type: 'revenue',
+      s3_key: s3Key,
     })
     console.log('Gemini response:', processResponse.data)
     if (processResponse.data.result) {
@@ -206,7 +207,6 @@ const uploadFile = async (file: File) => {
       const extractedData = JSON.parse(jsonString)
 
       console.log('Parsed data:', extractedData)
-      extractedData.payment_method = extractedData.payment_method.toLowerCase()
       newRevenue.value = {
         ...newRevenue.value,
         dateTime: extractedData.dateTime,

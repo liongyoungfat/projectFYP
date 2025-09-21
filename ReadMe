@@ -1,0 +1,8 @@
+1. Install the requirement file 
+  and run backend
+  cd backend 
+  venv/Scripts/Actitvate.ps1
+  python app.py 
+2. npm install package.json with npm i
+3. npm run build to build front end
+

@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS  
-from google import genai
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -24,10 +23,10 @@ CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
 
 db_config={
-    'host':'localhost',
+    'host':'127.0.0.1',
     'user':'root',
-    'password':'123',
-    'database':'mydatabase'
+    'password':'q1w2e3r4t5y6--==',
+    'database':'awshackathon'
 }
 
 def get_db_connection():

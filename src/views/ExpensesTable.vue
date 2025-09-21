@@ -216,10 +216,11 @@ const uploadFile = async (file: File) => {
       },
     })
     console.log('Extracted data:', uploadResponse.data.path)
-    const filePath = uploadResponse.data.path
+    const s3Key = uploadResponse.data.s3_key
     // 2. Process file with Gemini
     const processResponse = await axios.post(localhost + 'api/processReceipt', {
-      file_path: filePath,
+      type: 'expense',
+      s3_key: s3Key,
     })
     console.log('Gemini response:', processResponse.data)
     if (processResponse.data.result) {

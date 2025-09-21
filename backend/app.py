@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from prophet import Prophet
 from io import BytesIO
+from PyPDF2 import PdfReader
 
 import mysql.connector  
 import calendar 
@@ -15,12 +16,13 @@ import time
 import pandas as pd
 import re, json
 
+
 import boto3
 import json
 
+
 ALLOWED_EXTENSIONS = {'pdf','png','jpg','jpeg', 'xls', 'xlsx'}
 UPLOAD_FOLDER='/temp'
-
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
@@ -207,7 +209,8 @@ def login():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-
+ALLOWED_EXTENSIONS = {'pdf','png','jpg','jpeg', 'xls', 'xlsx'}
+UPLOAD_FOLDER='/temp'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -216,6 +219,11 @@ def allowed_file(filename):
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'xls', 'xlsx'}
+BUCKET_NAME = "my-app-temp-files-2025"
+s3 = boto3.client('s3', region_name='us-east-1')
+
 
 @app.route('/api/uploadFile', methods=['POST'])
 def upload_file():
@@ -234,70 +242,59 @@ def upload_file():
         return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        save_name = f"{int(time.time())}_{filename}"
-        save_path = os.path.join(upload_folder, save_name)
-        file.save(save_path)
+        timestamp = int(time.time())
+        s3_key = f"{file_type}/{timestamp}_{filename}"  # file path inside S3 bucket
+
+        # Upload to S3
+        s3.upload_fileobj(file, BUCKET_NAME, s3_key)
+
+        # Optional: generate public URL (or use pre-signed URL if private)
+        file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
+
         return jsonify({
             'message': 'File uploaded successfully',
-            'path': save_path
+            's3_key': s3_key,
+            'file_url': file_url
         }), 200
     else:
-        return jsonify({"success": False, "message": "Invalid File Type, only accept 'pdf','png','jpg','jpeg', 'xls', 'xlsx"}), 400 
-
+        return jsonify({
+            "success": False, 
+            "message": "Invalid File Type, only accept 'pdf','png','jpg','jpeg','xls','xlsx'"
+        }), 400
+    
 client = boto3.client("bedrock-runtime", region_name="us-east-1")
 
 model_id = "amazon.nova-pro-v1:0"
 
-prompt = {
-    "messages": [
-        {
-            "role": "user",
-            "content": [
-                {"text": "can you extract data from raw file for me?"}
-            ]
-        }
-    ],
-    "inferenceConfig": {
-        "maxTokens": 200,
-        "temperature": 0.7,
-        "topP": 0.9
-    }
-}
 
-response = client.invoke_model(
-    modelId=model_id,
-    body=json.dumps(prompt)
-)
-
-result = json.loads(response["body"].read())
-print("AI reply:", result["output"]["message"]["content"][0]["text"])
-
-import base64
-from PyPDF2 import PdfReader
-
-
+import tempfile
 @app.route('/api/processReceipt', methods=['POST'])
 def process_receipt():
     try:
         data = request.get_json()
         doc_type = data.get('type', 'expense')
         print('data',data)
-        relative_path = data.get('file_path', '')
-        abs_path = os.path.join(BASE_DIR, relative_path)
-        abs_path = os.path.normpath(abs_path)  # Normalize path
-        ext = os.path.splitext(abs_path)[1].lower()
+        s3_key = data.get('s3_key')
+        print ('s3k',s3_key)
+        if not s3_key:
+            return jsonify({'error': 'No s3_key provided'}), 400
+
+        # Download file from S3 to a temporary local file
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            s3.download_fileobj(BUCKET_NAME, s3_key, tmp_file)
+            tmp_file_path = tmp_file.name
+
+        ext = os.path.splitext(tmp_file_path)[1].lower()
         
         if ext in ['.xls', '.xlsx']:
             # Excel file: process and return parsed data
             print ('excel running')
-            records = process_excel_file(abs_path)
-            return jsonify({'excel_data': records, 'file_path': abs_path})
+            records = process_excel_file(tmp_file_path)
+            return jsonify({'excel_data': records, 's3_key': s3_key})
 
-        print(f"Processing file: {abs_path}")
-        
-        if not os.path.exists(abs_path):
-            return jsonify({'error': 'File not found'}), 404
-        reader = PdfReader(abs_path)
+        print(f"Processing file: {tmp_file_path}")
+
+        reader = PdfReader(tmp_file_path)
         pdf_text = "\n".join([page.extract_text() for page in reader.pages])
 
         if doc_type == 'revenue':
@@ -367,7 +364,7 @@ def process_receipt():
 
         return jsonify({
             "result": ai_reply,
-            "file_path": abs_path
+            "s3_key": s3_key
         })
     except Exception as e:
         print(f"Error in inline PDF example: {e}")

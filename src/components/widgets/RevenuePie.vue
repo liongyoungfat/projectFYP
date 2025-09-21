@@ -70,7 +70,19 @@ const fetchAvailableDates = async () => {
     params: { company_id: companyId },
   })
   availableDates.value = res.data
+   if (availableYears.value.length > 0) {
+    selectedYear.value = availableYears.value.includes(currentYear)
+      ? currentYear
+      : availableYears.value[0]
+
+    const monthsForYear = availableDates.value
+      .filter(item => item.year === selectedYear.value)
+      .map(item => item.month)
+      .sort((a, b) => b - a)
+    selectedMonth.value = monthsForYear[0]
+  }
 }
+
 
 const availableYears = computed(() =>
   [...new Set(availableDates.value.map((item) => item.year))].sort((a, b) => b - a),

@@ -47,7 +47,18 @@ const fetchAvailableDates = async () => {
     params: { company_id: companyId },
   })
   availableDates.value = res.data
+  if (availableDates.value.length > 0) {
+    const yearsSorted = [...new Set(availableDates.value.map(item => item.year))].sort((a, b) => b - a)
+    selectedYear.value = yearsSorted[0]
+
+    const monthsForYear = availableDates.value
+      .filter(item => item.year === selectedYear.value)
+      .map(item => item.month)
+      .sort((a, b) => b - a)
+    selectedMonth.value = monthsForYear[0]
+  }
 }
+
 
 const availableYears = computed(() =>
   [...new Set(availableDates.value.map((item) => item.year))].sort((a, b) => b - a),
@@ -142,8 +153,8 @@ const exportExpensePieChart = () => {
   html2pdf().set(opt).from(container).save()
 }
 
-onMounted(() => {
-  fetchAvailableDates()
+onMounted(async () => {
+  await fetchAvailableDates()
   fetchChartData()
 })
 

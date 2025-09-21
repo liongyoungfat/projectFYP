@@ -21,23 +21,20 @@ import json
 
 
 ALLOWED_EXTENSIONS = {'pdf','png','jpg','jpeg', 'xls', 'xlsx'}
-UPLOAD_FOLDER='/temp'
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
-
-
-db_config={
-    'host':'127.0.0.1',
-    'user':'root',
-    'password':'q1w2e3r4t5y6--==',
-    'database':'awshackathon'
+db_config = {
+    'host': 'awshackathon.cwliy2uwydfb.us-east-1.rds.amazonaws.com',
+    'user': 'admin',
+    'password': 'q1w2e3r4t5y6--==',
+    'database': 'awshackathon'
 }
 
 def get_db_connection():
-    print ("conn",mysql.connector.connect(**db_config))
-    return mysql.connector.connect(**db_config)
+    conn = mysql.connector.connect(**db_config)
+    print("Connected:", conn.is_connected())
+    return conn
 
 
 
@@ -209,9 +206,7 @@ def login():
 
 
 ALLOWED_EXTENSIONS = {'pdf','png','jpg','jpeg', 'xls', 'xlsx'}
-UPLOAD_FOLDER='/temp'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 
 def allowed_file(filename):
     return '.' in filename and \
